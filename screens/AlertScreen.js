@@ -1,16 +1,17 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
+import { FontAwesome5 } from '@expo/vector-icons';
 
 const tabs = [
-  { key: 'home', label: 'Home', screen: 'Home' },
-  { key: 'residents', label: 'Residents', screen: 'ResidentScreen' },
-  { key: 'alert', label: 'Alert', screen: 'AlertScreen' },
-  { key: 'log', label: 'Log', screen: 'LogScreen' },
+  { key: 'home', label: 'Home', screen: 'Home', icon: 'home' },
+  { key: 'residents', label: 'Residents', screen: 'ResidentScreen', icon: 'users' },
+  { key: 'alert', label: 'Alert', screen: 'AlertScreen', icon: 'bell' },
+  { key: 'audit', label: 'Audit', screen: 'AuditLogScreen', icon: 'clipboard' },
 ];
 
-export default function HomeScreen({ navigation }) {
+export default function AlertScreen({ navigation }) {
   const route = useRoute();
   const activeTab = tabs.find((tab) => tab.screen === route.name)?.key;
 
@@ -18,11 +19,43 @@ export default function HomeScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.heading}>Alert</Text>
-        <Text style={styles.subheading}>Tap on alert to confirm status</Text>
-
-        <View style={styles.divider} />
-
+        <Text style={styles.subheading}>Tap an alert to confirm status</Text>
+     
+        <View style={styles.divider} /> 
       </View>
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={[styles.scanCard, styles.scanCardActive]}>
+          <View style={styles.scanCardTextWrap}>
+            <Text style={[styles.scanCardTitle, styles.statusOpen]}>Alert Open</Text>
+            <Text style={styles.scanCardTime}>12:00 PM</Text>
+          </View>
+          
+          <Text style={styles.heading1}>[Resident Name]</Text>
+          <Text style={styles.scanCardSubtitle}>Scanned by a Bystander</Text>
+          <Text style={styles.scanCardSubtitle}>Note: Optional Note that the bystander sent through the 
+            public landing page. This is very helpful for the guardian and responder</Text>
+          
+          <View style={styles.scanCardButtonWrap}>
+            <TouchableOpacity>
+              <Text style={[styles.scanCardButtons, styles.statusClosed]}>Mark Safe</Text>
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Text style={[styles.scanCardButtons, styles.statusOpen]}>Not Safe</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.scanCard}>
+          <View style={styles.scanCardTextWrap}>
+            <Text style={[styles.scanCardTitle, styles.statusClosed]}>Alert Closed</Text>
+            <Text style={styles.scanCardTime}>12:00 PM</Text>
+          </View>
+          
+          <Text style={styles.heading1}>[Resident Name]</Text>
+          <Text style={styles.scanCardSubtitle}>Resolved - Both Confirmed Safe</Text>
+        </View>
+      </ScrollView>
 
       <View style={styles.tabBar}>
         {tabs.map((tab) => (
@@ -31,6 +64,7 @@ export default function HomeScreen({ navigation }) {
             style={[styles.tabButton, activeTab === tab.key && styles.tabButtonActive]}
             onPress={() => navigation.navigate(tab.screen)}
           >
+            <FontAwesome5 name={tab.icon} size={20} color={activeTab === tab.key ? '#245490' : '#333'} />
             <Text
               style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}
             >
@@ -44,10 +78,12 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#e0e0e' },
-  content: { flex: 1, padding: 20 },
+  container: { flex: 1, backgroundColor: '#fff' },
+  content: { padding: 20, paddingBottom: 0 },
+  scrollView: { flex: 1 },
+  scrollContent: { padding: 20, paddingTop: 0 },
   heading: { fontSize: 26, fontFamily: 'Poppins_700Bold', marginBottom: -6 },
-  heading1: { fontSize: 20, fontFamily: 'Poppins_600SemiBold', marginBottom: 4 },
+  heading1: { fontSize: 20, fontFamily: 'Poppins_600SemiBold', marginLeft: 8 },
   subheading: { fontSize: 16, fontFamily: 'Poppins_500Medium', color: '#666', marginBottom: 20 },
 
   grid: {
@@ -76,24 +112,44 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  headCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  scanCard: {
+    flexDirection: 'column',
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
-  headCardTextWrap: { flex: 1 },
-  headCardTitle: { fontSize: 15, fontFamily: 'Poppins_500Medium', marginBottom: 2 },
-  headCardSubtitle: { fontSize: 13, fontFamily: 'Poppins_400Regular', color: '#666' },
-  headCardDot: {
+  scanCardTextWrap: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  scanCardButtonWrap: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  scanCardTitle: { 
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 16,
+    fontSize: 15, 
+    fontFamily: 'Poppins_600SemiBold', 
+    marginBottom: 2 
+  },
+  scanCardButtons: { 
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 42,
+    fontSize: 15, 
+    fontFamily: 'Poppins_600SemiBold', 
+    marginBottom: 2 
+  },
+  scanCardActive: { borderColor: '#a83232', },
+  statusOpen: { color: '#a83232', backgroundColor: '#fbd1d1', },
+  statusPending: { color: '#8a6d1d', backgroundColor: '#fbf1a1', },
+  statusClosed: { color: '#288928', backgroundColor: '#a1fbaa', },
+  scanCardTime: { fontSize: 13, fontFamily: 'Poppins_400Regular', paddingVertical: 4, color: '#666' },
+  scanCardSubtitle: { fontSize: 14, fontFamily: 'Poppins_400Regular', marginLeft: 8 },
+  scanCardDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: '#333',
+    marginRight: 2,
   },
 
   tabBar: {
@@ -107,16 +163,12 @@ const styles = StyleSheet.create({
   tabButton: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 4,
+    paddingBottom: 0,
     marginHorizontal: 4,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
   },
-  tabButtonActive: {
-    backgroundColor: '#d3e5f8',
-    borderColor: '#d3e5f8',
-  },
+  tabButtonActive: { backgroundColor: '#d3e5f8', borderColor: '#d3e5f8'},
   tabLabel: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: '#333' },
   tabLabelActive: { color: '#245490', fontFamily: 'Poppins_700Bold' },
 });
