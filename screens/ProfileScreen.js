@@ -5,7 +5,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 
 const tabs = [
   { key: 'home', label: 'Home', screen: 'Home', icon: 'home' },
-  { key: 'residents', label: 'Residents', screen: 'ResidentScreen', icon: 'users' },
+  { key: 'residents', label: 'Residents', screen: 'ResidentScreen', icon: 'address-card' },
   { key: 'alert', label: 'Alert', screen: 'AlertScreen', icon: 'bell' },
   { key: 'audit', label: 'Audit', screen: 'AuditLogScreen', icon: 'clipboard' },
 ];
@@ -24,7 +24,8 @@ export default function ProfileScreen({ route, navigation }) {
   if (showQR) {
     return (
         <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
+            <Text style={styles.back} onPress={() => navigation.goBack()}>‹ Back</Text>
             <Text style={styles.heading}>QR Card Generated</Text>
 
             <View style={styles.qrBox}>
@@ -48,7 +49,7 @@ export default function ProfileScreen({ route, navigation }) {
             >
               <Text style={styles.secondaryButtonText}>Back to Profile</Text>
             </TouchableOpacity>
-        </ScrollView>
+        </View>
         </SafeAreaView>
     );
   }
@@ -105,16 +106,38 @@ export default function ProfileScreen({ route, navigation }) {
       </ScrollView>
 
       <View style={styles.tabBar}>
-        {tabs.map((tab) => (
+        {tabs.slice(0, 2).map((tab) => (
           <TouchableOpacity
             key={tab.key}
-            style={[styles.tabButton, activeTab === tab.key && styles.tabButtonActive]}
+            style={styles.tabButton}
             onPress={() => navigation.navigate(tab.screen)}
           >
-            <FontAwesome5 name={tab.icon} size={20} color={activeTab === tab.key ? '#245490' : '#333'} />
-            <Text
-              style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}
-            >
+            <View style={[styles.tabLabel, activeTab === tab.key && styles.iconActive]}>
+              <FontAwesome5 name={tab.icon} size={20} color={activeTab === tab.key ? '#245490' : '#333'} />
+            </View>            
+            <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+
+        <TouchableOpacity
+          style={styles.scanButton}
+          onPress={() => navigation.navigate('ScannerScreen')}
+        >
+          <FontAwesome5 name="qrcode" size={28} color="#333" />
+        </TouchableOpacity>
+
+        {tabs.slice(2).map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={styles.tabButton}
+            onPress={() => navigation.navigate(tab.screen)}
+          >
+            <View style={[styles.tabLabel, activeTab === tab.key && styles.iconActive]}>
+              <FontAwesome5 name={tab.icon} size={20} color={activeTab === tab.key ? '#245490' : '#333'} />
+            </View>          
+            <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
               {tab.label}
             </Text>
           </TouchableOpacity>
@@ -130,7 +153,7 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: { padding: 20, paddingTop: 0 },
   back: { fontSize: 16, fontFamily: 'Poppins_400Regular', color: '#245490', marginBottom: 16, marginTop: -16 },
-  heading: { fontSize: 28, fontFamily: 'Poppins_700Bold', marginBottom: 10 },
+  heading: { fontSize: 28, fontFamily: 'Poppins_700Bold', marginTop: -10 },
   heading1: { fontSize: 20, fontFamily: 'Poppins_600SemiBold', marginBottom: 4 },
   subheading: { fontSize: 16, fontFamily: 'Poppins_500Medium', color: '#666', marginBottom: 20 },
 
@@ -138,7 +161,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    marginTop: -10,
+    marginTop: -12,
   },
   profilePhoto: {
     width: 100,
@@ -147,6 +170,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: '#c4c4c4',
     marginRight: 14,
+    shadowColor: '#051c37',
+    shadowOffset: { width: 7, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
   },
   profileTextWrap: { flex: 1 },
   name: { fontSize: 22, fontFamily: 'Poppins_600SemiBold', marginBottom: 4 },
@@ -154,9 +182,12 @@ const styles = StyleSheet.create({
 
   button: {
     backgroundColor: '#d3e5f8',
+    borderColor: '#245490',
+    borderWidth: .5,
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
+    marginTop: 4,
     marginBottom: 16,
   },
   buttonText: { color: '#245490', fontFamily: 'Poppins_500Medium', fontSize: 16, fontWeight: '600' },
@@ -174,6 +205,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    backgroundColor: '#fff',
+    shadowColor: '#aaa',
+    shadowOffset: { width: 7, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   scanCardTextWrap: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   scanCardTitle: { 
@@ -182,7 +219,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 15, 
     fontFamily: 'Poppins_600SemiBold', 
-    marginBottom: 2 
+    marginBottom: 2,
+    backgroundColor: '#fff',
+    shadowColor: '#aaa',
+    shadowOffset: { width: 7, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 2,
   },
   statusOpen: { color: '#a83232', backgroundColor: '#fbd1d1', },
   statusPending: { color: '#8a6d1d', backgroundColor: '#fbf1a1', },
@@ -201,6 +244,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderTopWidth: 1,
     borderTopColor: '#ddd',
+    backgroundColor: '#ebf1f7',
     paddingVertical: 10,
     paddingHorizontal: 16,
     justifyContent: 'space-between',
@@ -213,31 +257,73 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     borderRadius: 8,
   },
-  tabButtonActive: { backgroundColor: '#d3e5f8', borderColor: '#d3e5f8'},
   tabLabel: { fontSize: 12, fontFamily: 'Poppins_400Regular', color: '#333' },
   tabLabelActive: { color: '#245490', fontFamily: 'Poppins_700Bold' },
+  iconActive: {
+    borderRadius: 20,
+    width: 40,
+    height: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#d3e5f8',
+    shadowColor: '#245490',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+
+  scanButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: '#aaa',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
+  },
 
   primaryButton: {
     backgroundColor: '#d3e5f8',
+    borderColor: '#245490',
+    borderWidth: 1,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
+    shadowColor: '#245490',
+    shadowOffset: { width: 7, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   primaryButtonText: { color: '#245490', fontSize: 16, fontFamily: 'Poppins_500Medium' },
 
   secondaryButton: {
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#d3e5f8',
+    borderColor: '#245490',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 12,
+    shadowColor: '#245490',
+    shadowOffset: { width: 7, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   secondaryButtonText: { color: '#245490', fontSize: 16, fontFamily: 'Poppins_400Regular' },
 
   qrBox: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#ccc',
     borderRadius: 16,
     padding: 24,
@@ -245,6 +331,12 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 20,
     marginHorizontal: 16,
+    backgroundColor: '#fff',
+    shadowColor: '#245490',
+    shadowOffset: { width: 7, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   qrPlaceholder: {
     width: 280,
