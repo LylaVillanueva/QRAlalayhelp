@@ -37,7 +37,7 @@ const TEST_ACCOUNTS = {
     status: 'Active',
     wardIds: [],
   },
-  '+639222222222': {
+  'example@example.test': {
     id: 'test-responder-001',
     fullName: 'Ka Erning',
     name: 'Ka',
