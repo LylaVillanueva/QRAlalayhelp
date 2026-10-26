@@ -1,0 +1,328 @@
+:root {
+  font-family: Poppins, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #000;
+  background: #fff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
+  --ink: #000;
+  --body: #555;
+  --muted: #6b6b6b;
+  --faint: #a6a6a6;
+  --line: #d4d4d4;
+  --red: #e44a4a;
+  --red-dark: #cc3a3a;
+  --blue: #3f8ac7;
+  --blue-dark: #3277b0;
+  --cream: #f4f3ec;
+  --cream-line: #cfcdc0;
+  --brown: #6b5634;
+
+  /* Type and spacing scale taken from the iPhone 13/14 mockup (390pt wide). */
+  --text-title: 32px;
+  --text-subtitle: 18px;
+  --text-label: 20px;
+  --text-input: 18px;
+  --text-button: 22px;
+  --text-body: 15px;
+  --text-helper: 12px;
+  --gutter: 20px;
+  --gap: 20px;
+  --radius: 18px;
+  --button-height: 80px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: #fff;
+  color: var(--ink);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+.page {
+  width: min(100% - var(--gutter) * 2, 440px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+.site-header {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 10px;
+}
+
+.brand-logo {
+  width: 60px;
+  height: 60px;
+  display: block;
+}
+
+.divider {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.page-content {
+  padding-top: var(--gap);
+}
+
+.page-content > * + .divider,
+.page-content > .divider + * {
+  margin-top: var(--gap);
+}
+
+h1 {
+  margin-bottom: 0;
+  color: var(--ink);
+  font-size: var(--text-title);
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  line-height: 1.25;
+}
+
+h2 {
+  margin-bottom: 6px;
+  color: var(--ink);
+  font-size: var(--text-subtitle);
+  font-weight: 500;
+}
+
+.resident-meta {
+  margin: 6px 0 0;
+  font-size: var(--text-subtitle);
+  line-height: 1.6;
+}
+
+.medical-notes {
+  margin: 0;
+  color: var(--body);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.field-label {
+  display: block;
+  margin: 2px 0 14px;
+  color: var(--muted);
+  font-size: var(--text-label);
+}
+
+textarea {
+  width: 100%;
+  border: 1px solid var(--cream-line);
+  border-radius: var(--radius);
+  outline: none;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: var(--text-input);
+  line-height: 1.6;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+textarea {
+  min-height: 200px;
+  padding: 14px 20px;
+  resize: vertical;
+}
+
+textarea::placeholder {
+  color: #77756b;
+}
+
+textarea:focus {
+  border-color: var(--brown);
+  box-shadow: 0 0 0 4px rgba(107, 86, 52, 0.12);
+}
+
+.helper-copy {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: var(--text-helper);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.body-copy {
+  margin: 16px 0 0;
+  color: var(--body);
+  font-size: var(--text-body);
+  line-height: 1.75;
+}
+
+.status-block {
+  text-align: center;
+}
+
+.fine-print {
+  margin: 0;
+  color: var(--faint);
+  font-size: var(--text-body);
+  line-height: 1.75;
+}
+
+/* Every action is a full-width button with the same size, shape and type;
+   only the color changes (red = alert/call, blue = location, cream = secondary). */
+.button {
+  width: 100%;
+  min-height: var(--button-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--gap);
+  padding: 12px 20px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: var(--text-button);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+
+.helper-copy + .button,
+.status-block + .button {
+  margin-top: 24px;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.button-danger {
+  background: var(--red);
+  color: #fff;
+}
+
+.button-danger:hover:not(:disabled) {
+  background: var(--red-dark);
+}
+
+.button-primary {
+  background: var(--blue);
+  color: #fff;
+}
+
+.button-primary:hover:not(:disabled) {
+  background: var(--blue-dark);
+}
+
+.button-neutral {
+  border-color: var(--cream-line);
+  background: var(--cream);
+  color: var(--brown);
+}
+
+.button-neutral:hover:not(:disabled) {
+  background: #ebe9de;
+}
+
+.button:focus-visible {
+  outline: 3px solid rgba(63, 138, 199, 0.45);
+  outline-offset: 3px;
+}
+
+.status-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.live-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.live-dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #2e9d57;
+  box-shadow: 0 0 0 0 rgba(46, 157, 87, 0.5);
+  animation: pulse 1.6s ease-out infinite;
+}
+
+@keyframes pulse {
+  to { box-shadow: 0 0 0 8px rgba(46, 157, 87, 0); }
+}
+
+.error-text {
+  margin: 14px 0 0;
+  color: var(--red-dark);
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+.loading-indicator {
+  width: 35px;
+  height: 35px;
+  display: block;
+  margin: 0 auto 18px;
+  border: 3px solid #dbe8f3;
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 850ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Small phones (iPhone SE and narrower): shrink the scale, keep the layout. */
+@media (max-width: 360px) {
+  :root {
+    --text-title: 28px;
+    --text-label: 18px;
+    --text-input: 16px;
+    --text-button: 20px;
+    --gutter: 16px;
+    --button-height: 68px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
