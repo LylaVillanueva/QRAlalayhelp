@@ -24,7 +24,7 @@ const TEST_ACCOUNTS = {
     status: 'Active',
     wardIds: [],
   },
-  '+639111111111': {
+  'example@example.test': {
     id: 'test-guardian-001',
     fullName: 'Apple David',
     name: 'Apple',
