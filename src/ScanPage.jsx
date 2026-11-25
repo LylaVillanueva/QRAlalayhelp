@@ -4,6 +4,9 @@ import { getCurrentPosition, watchPosition } from './geolocation';
 
 // How often the latest position is sent while sharing live location.
 const SHARE_INTERVAL_MS = 10000;
+// Continuous live sharing is deferred; the one-time location is still sent
+// with the assistance request. Set to true to show the controls again.
+const LIVE_LOCATION_SHARING_ENABLED = false;
 import PageLayout from './PageLayout.jsx';
 
 export default function ScanPage({ token }) {
@@ -111,7 +114,7 @@ export default function ScanPage({ token }) {
     return (
       <PageLayout>
         <section className="status-block" role="alert">
-          <h1>We couldn’t load this profile</h1>
+          <h1>This QR code isn’t available</h1>
           <p className="body-copy error-text">{error}</p>
           <p className="body-copy">Check that this is the latest QR code, or ask the barangay for help.</p>
         </section>
@@ -135,18 +138,16 @@ export default function ScanPage({ token }) {
   }
 
   if (phase === 'raised') {
-    const dialNumber = result.emergencyDialNumber || '911';
-
     return (
       <PageLayout>
         <section className="status-block" aria-live="polite">
-          <h1>Help is being notified!</h1>
+          <h1>Assistance request registered</h1>
           <p className="body-copy">
-            The barangay can review the alert for {resident.firstName}. Any available location was included. Notifications are being attempted for the registered guardian and barangay officials.
+            The barangay can review this request. Any location you chose to share was included. This confirmation does not mean that assistance has arrived.
           </p>
         </section>
 
-        {result.locationShareToken && (
+        {LIVE_LOCATION_SHARING_ENABLED && result.locationShareToken && (
           liveLocation.status === 'sharing' || liveLocation.status === 'starting' ? (
             <>
               <button className="button button-neutral" onClick={liveLocation.stop}>Stop sharing location</button>
@@ -173,7 +174,7 @@ export default function ScanPage({ token }) {
           )
         )}
 
-        <a className="button button-danger" href={`tel:${dialNumber}`}>Call {dialNumber} now</a>
+        <a className="button button-danger" href="tel:911">Call 911 now</a>
 
         {cancelSecondsLeft > 0 && (
           <>
@@ -192,24 +193,30 @@ export default function ScanPage({ token }) {
     );
   }
 
-  const dialNumber = resident.emergencyDialNumber || '911';
-
   return (
     <PageLayout>
       <section className="resident-block">
-        <h1 className="resident-name">{resident.firstName}</h1>
+        <h1 className="resident-name">QRAlalay</h1>
         {resident.barangayName && <p className="resident-meta">{formatBarangay(resident.barangayName)}</p>}
+        <p className="body-copy">This card can help someone request community assistance and reconnect with an authorized guardian.</p>
       </section>
 
-      {resident.medicalNotes && (
-        <>
-          <hr className="divider" />
-          <section className="detail-section" aria-labelledby="medical-heading">
-            <h2 id="medical-heading">Medical information</h2>
-            <p className="medical-notes">{resident.medicalNotes}</p>
-          </section>
-        </>
-      )}
+      {(resident.contacts || []).length > 0 && <>
+        <hr className="divider" />
+        <section className="response-section" aria-labelledby="barangay-contact-heading">
+          <h2 id="barangay-contact-heading">Verified barangay contacts</h2>
+          <p className="body-copy">Call a confirmed local contact for immediate assistance.</p>
+          {resident.contacts.map((contact, index) => <a
+            className="button button-neutral"
+            href={`tel:${contact.phone}`}
+            key={`${contact.label}-${contact.phone}-${index}`}
+            aria-label={`Call ${contact.label}, ${contact.phone}`}
+          >
+            Call {contact.label}: {contact.phone}{contact.availability ? ` · ${contact.availability}` : ''}
+          </a>)}
+          <a className="button button-danger" href="tel:911">Call 911</a>
+        </section>
+      </>}
 
       <hr className="divider" />
 
@@ -235,8 +242,8 @@ export default function ScanPage({ token }) {
           {phase === 'submitting' ? 'Sending alert…' : 'Send an Alert!'}
         </button>
 
-        <a className="button button-neutral" href={`tel:${dialNumber}`}>
-          Skip and call {dialNumber} instead
+        <a className="button button-neutral" href="tel:911">
+          Skip and call 911 instead
         </a>
       </section>
 

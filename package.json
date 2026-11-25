@@ -1,12 +1,13 @@
 {
-  "name": "resqr-web",
+  "name": "qralalay-web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test *.test.cjs"
   },
   "engines": {
     "node": "24.x"

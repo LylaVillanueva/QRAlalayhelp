@@ -1,31 +1,129 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || import.meta.env.EXPO_PUBLIC_SUPABASE_URL)?.replace(/\/$/, '');
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const FUNCTIONS_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1` : null;
+const activeLocationShares = new Set();
 
-// Send one request to the backend and return only its `data` field.
-// The backend's errors are converted into normal JavaScript Error objects so
-// screens can display a useful message to the person using the app.
-async function request(path, { method = 'GET', body } = {}) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+function configuration() {
+  if (!FUNCTIONS_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('The public QR service is not configured.');
+  }
+  return { functionsUrl: FUNCTIONS_URL, anonKey: SUPABASE_ANON_KEY };
+}
+
+async function invoke(name, body) {
+  const { functionsUrl, anonKey } = configuration();
+  const response = await fetch(`${functionsUrl}/${name}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15000),
   });
-
-  const json = await res.json().catch(() => null);
-  if (!res.ok) {
-    const err = new Error(json?.error?.message || `Request failed (${res.status})`);
-    err.code = json?.error?.code;
-    err.status = res.status;
-    throw err;
+  const json = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = new Error(json?.error?.message || `Request failed (${response.status})`);
+    error.code = json?.error?.code;
+    error.status = response.status;
+    throw error;
   }
   return json?.data;
 }
 
-// These are the backend actions used by the public QR screen.
+function randomCapability() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function capabilitiesFor(token) {
+  const storageKey = `qralalay.public-request.${token}`;
+  try {
+    const existing = sessionStorage.getItem(storageKey);
+    if (existing) {
+      const parsed = JSON.parse(existing);
+      if (parsed?.idempotencyKey && parsed?.requestToken && parsed?.locationToken) return { ...parsed, storageKey };
+    }
+    const created = { idempotencyKey: crypto.randomUUID(), requestToken: randomCapability(), locationToken: randomCapability() };
+    sessionStorage.setItem(storageKey, JSON.stringify(created));
+    return { ...created, storageKey };
+  } catch {
+    // Browser privacy settings may block storage. Capabilities still remain
+    // in memory for the current page; a retry after reload uses a new key.
+    return { idempotencyKey: crypto.randomUUID(), requestToken: randomCapability(), locationToken: randomCapability(), storageKey: null };
+  }
+}
+
+function clearCapabilities(token) {
+  try { sessionStorage.removeItem(`qralalay.public-request.${token}`); } catch { /* Storage is optional. */ }
+}
+
+function clearCapabilitiesForRequest(requestToken) {
+  try {
+    const prefix = 'qralalay.public-request.';
+    for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+      const key = sessionStorage.key(index);
+      if (!key?.startsWith(prefix)) continue;
+      const parsed = JSON.parse(sessionStorage.getItem(key) || 'null');
+      if (parsed?.requestToken === requestToken) sessionStorage.removeItem(key);
+    }
+  } catch { /* Storage is optional. */ }
+}
+
 export const api = {
-  getPublicQrView: (token) => request(`/qr/${token}/public-view`),
-  recordScanEvent: (token, body) => request(`/qr/${token}/scan-event`, { method: 'POST', body }),
-  cancelScan: (cancelToken) => request('/qr/cancel', { method: 'POST', body: { cancelToken } }),
-  shareLocation: (shareToken, { latitude, longitude }) =>
-    request('/qr/location', { method: 'POST', body: { shareToken, latitude, longitude } }),
-  stopLocation: (shareToken) => request('/qr/location/stop', { method: 'POST', body: { shareToken } }),
+  getPublicQrView: (token) => invoke('public-qr-view', { token }),
+
+  async recordScanEvent(token, body = {}) {
+    const capabilities = capabilitiesFor(token);
+    const data = await invoke('submit-assistance-request', {
+      token,
+      idempotencyKey: capabilities.idempotencyKey,
+      requestToken: capabilities.requestToken,
+      locationToken: capabilities.locationToken,
+      publicNote: body.bystanderNotes,
+      latitude: body.latitude,
+      longitude: body.longitude,
+      accuracyMeters: body.accuracyMeters,
+      locationDescription: body.locationDescription,
+    });
+    return {
+      status: data.status,
+      joined: data.joinedExisting,
+      cancelToken: data.requestToken,
+      cancellableUntil: data.cancellableUntil,
+      locationShareToken: data.locationToken,
+    };
+  },
+
+  async cancelScan(cancelToken) {
+    const result = await invoke('cancel-assistance-request', { requestToken: cancelToken });
+    if (result?.cancelled) clearCapabilitiesForRequest(cancelToken);
+    return result;
+  },
+
+  async shareLocation(locationToken, position) {
+    if (!activeLocationShares.has(locationToken)) {
+      const started = await invoke('location-share', { action: 'start', locationToken });
+      if (!started?.sharing) return { sharing: false };
+      activeLocationShares.add(locationToken);
+    }
+    return invoke('location-share', {
+      action: 'update',
+      locationToken,
+      latitude: position.latitude,
+      longitude: position.longitude,
+      accuracyMeters: position.accuracy ?? null,
+    });
+  },
+
+  async stopLocation(locationToken) {
+    if (!locationToken) return { ok: true };
+    activeLocationShares.delete(locationToken);
+    return invoke('location-share', { action: 'stop', locationToken });
+  },
+
+  clearPublicRequest(token) { clearCapabilities(token); },
 };

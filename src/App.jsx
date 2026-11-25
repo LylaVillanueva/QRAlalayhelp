@@ -27,7 +27,7 @@ function NoCard({ invalid }) {
   return (
     <PageLayout>
       <section className="status-block">
-        <h1>{invalid ? 'This QR code isn’t valid' : 'Scan a ResQR card'}</h1>
+        <h1>{invalid ? 'This QR code isn’t valid' : 'Scan a QRAlalay card'}</h1>
         <p className="body-copy">
           {invalid
             ? 'The link is incomplete or damaged. Try scanning the card again, or ask the barangay for help.'

@@ -1,19 +1,19 @@
-# ResQR Web
+# QRAlalay Website
 
-ResQR Web is the public emergency response website for the ResQR system. A
+The QRAlalay Website is the public emergency response website for the QRAlalay system. A
 resident's QR card links to a scan page. When a bystander scans the card, the
 website retrieves the resident's limited emergency profile and provides a
 quick way to notify the barangay and guardian.
 
 The website is designed for use during an emergency: it does not require an
 account, works from a phone browser, and keeps the alert flow short. A bystander
-can add an optional note, share their location, call the listed emergency
+can add an optional note, share their location once with the alert, call the listed emergency
 number, and cancel an alert sent by mistake while cancellation is available.
 The page can still send an alert when location access is unavailable or denied.
 
-Resident information and alerts are handled by the ResQR backend. The website
+Resident information and alerts are handled by the QRAlalay Supabase backend (public Edge Functions). The website
 shows only the public emergency details returned for that QR card, such as the
-resident's first name, barangay, and medical notes. It is a React website built
+barangay and its confirmed contact numbers. It is a React website built
 with Vite and deployed as a static site; it is not an Expo or React Native app.
 
 ## Website flow
@@ -26,28 +26,24 @@ with Vite and deployed as a static site; it is not an Expo or React Native app.
    responders. If the alert was accidental, the bystander can cancel it during
    the available cancellation period.
 
-The website is the public, bystander-facing part of ResQR. It does not provide
+The website is the public, bystander-facing part of QRAlalay. It does not provide
 resident registration, profile management, or officer accounts.
 
 ## Run it on your computer
 
 1. Install Node.js and npm if they are not already installed.
-2. Open a terminal in this folder (`RESQR-Web`).
+2. Open a terminal in this folder (the repository root).
 3. Install the packages listed in `package-lock.json`:
 
    ```sh
    npm install
    ```
 
-4. Set `VITE_API_BASE_URL` in `.env` to the base URL of the backend API. For
-   example, the local development backend may use:
+4. Copy `.env.example` to `.env.local` and set the Project B Supabase URL and
+   publishable key. The scan service calls the public Edge Functions. Do not
+   put a service-role key in a Vite variable; Vite embeds these values in
+   browser files.
 
-   ```env
-   VITE_API_BASE_URL=http://localhost:4000/api
-   ```
-
-   The backend must be running and reachable from this computer. A phone
-   scanning a QR sticker also needs a URL that the phone can reach.
 
 5. Start the website:
 
@@ -57,47 +53,43 @@ resident registration, profile management, or officer accounts.
 
 Vite prints the local address to open in a browser. Open a scan link in the
 form `/scan/<token>` (the app shows it when you issue a QR card). Any other
-address shows a short "Scan a ResQR card" notice; there's no way to type in a
+address shows a short "Scan a QRAlalay card" notice; there's no way to type in a
 code.
 
-`npm run build` creates the production website in `dist/`. It refuses to build
-unless `VITE_API_BASE_URL` is a public `https://` backend address. Local
-development can still use the local backend with `npm run dev`.
+`npm run build` creates the production website in `dist/`. It requires both
+Supabase variables and allows only the configured Project B origin in the Content Security Policy.
+
+`npm test` runs the public QR API contract tests with mocked Edge Function
+responses; it does not contact a backend.
 
 ## Deploy it to Vercel
 
-1. Deploy the `RESQR2` backend first at a public `https://` address. The
-   website is static; resident and alert data still comes from that backend.
-2. Import the repository into Vercel and set **Root Directory** to
-   `RESQR-Web` (if the repository root is the parent folder). Vercel reads this
-   folder's `vercel.json` and `package-lock.json`. The project pins its build
-   runtime to Node.js 24, which is supported by the installed Vite version.
-3. In Vercel → **Project Settings → Environment Variables**, set
-   `VITE_API_BASE_URL` to the backend API base, such as
-   `https://api.your-domain.com/api`. Add it to every environment you will use
-   (Production and Preview). This is a public API address, not a secret.
-4. Deploy with build command `npm run build` and output directory `dist`;
-   these are also set in `vercel.json`. The build intentionally fails if the
-   API URL is missing, not HTTPS, or points to localhost.
-5. Choose the final Vercel domain (or connect a custom domain). In the backend
-   environment, set `PUBLIC_WEB_ORIGIN` and `WEB_DASHBOARD_ORIGIN` to the exact
-   website origin, with no trailing slash, then restart the backend. The
-   backend must allow browser requests from this origin.
-6. Issue or reissue residents' QR cards after choosing the final domain. Each
-   QR link embeds the website address, so cards made with a temporary domain
-   will keep using it.
+This repository (`QRAlalay_Website`) is the website by itself, so Vercel's
+**Root Directory** stays at the repository root.
 
-For a local production build check, run
-`VITE_API_BASE_URL=https://api.example.com/api npm run build`. Replace the
-placeholder with the real backend URL in Vercel before deployment. Do not put
-backend secrets in `VITE_` variables; Vite includes those values in public
-browser files.
+1. In Vercel, choose **Add New → Project** and import
+   `LylaVillanueva/QRAlalay_Website`. Framework preset: **Vite** (also set in
+   `vercel.json`). Build command `npm run build`, output directory `dist`.
+   The build runs on Node.js 24 (`engines` in `package.json`).
+2. In **Settings → Environment Variables**, add both of these for
+   Production and Preview:
+   - `VITE_SUPABASE_URL` = `https://<project-ref>.supabase.co`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` = the project's publishable key
+   These values are public (Vite puts them in browser files). Never use a
+   secret or service-role key here; the build refuses one.
+3. Deploy. The build fails on purpose if either variable is missing or the
+   URL is not an HTTPS `*.supabase.co` origin.
+4. In the Supabase project, set the Edge Function secrets
+   `PUBLIC_WEB_ORIGINS` (comma-separated exact origins, no trailing slash) and
+   `PUBLIC_SITE_ORIGIN` (the origin printed in QR links) to the final website
+   origin, such as `https://qralalay-website.vercel.app`. Without this, browsers block
+   the website's requests.
+5. Issue or reissue residents' QR cards after the final domain is set. Each
+   QR link embeds the website address.
 
-Direct links such as `/scan/<token>` are routed to the React app by the Vercel
+Direct links such as `/scan/<token>` are routed to the React app by the
 rewrite in `vercel.json`, so scanning a QR code or refreshing that page works.
-
-Security headers and QR link routing are configured in `vercel.json` for
-Vercel. See `SECURITY.md` for what each protection does.
+Security headers are also set in `vercel.json`; see `SECURITY.md`.
 
 ## What happens when someone scans a QR code
 
@@ -132,7 +124,7 @@ Vercel. See `SECURITY.md` for what each protection does.
 - `SECURITY.md` — what is protected and how.
 - `package.json` — project commands and direct dependencies.
 - `package-lock.json` — exact dependency versions for repeatable installs.
-- `.env` — this computer's backend URL; it is intentionally excluded from Git.
+- `.env` — this computer's Supabase URL and publishable key; it is intentionally excluded from Git.
 
 `node_modules/` is downloaded by `npm install`, and `dist/` is generated by
 `npm run build`. Neither folder is needed to understand or keep the source

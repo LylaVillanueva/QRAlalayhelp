@@ -6,7 +6,7 @@ export default function PageLayout({ children }) {
   return (
     <div className="page">
       <header className="site-header">
-        <img className="brand-logo" src={logo} alt="ResQR" />
+        <img className="brand-logo" src={logo} alt="QRAlalay" />
       </header>
       <hr className="divider" />
       <main className="page-content">{children}</main>
