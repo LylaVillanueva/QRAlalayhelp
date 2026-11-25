@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.expo/
+.DS_Store
+.vercel/
+.env
+.env.*
+!.env.example
+*.log
+db-backups/
+requests.http
