@@ -1,19 +1,27 @@
-// Real, substantive policy text reflecting what this app actually does today
-// (see the data flows in services/api.js and the QRAlalay-Backend services) — not the
-// placeholder "content goes here" stub it replaces. The bracketed fields are
-// intentionally unfilled: a barangay office/organization name, DPO contact,
-// and legal review are still needed before this is final. Update
-// EFFECTIVE_DATE whenever the text below changes.
+// Confirmed project identity. Legal review and personal information controller
+// designation remain pending with the capstone adviser.
+export const PROJECT_IDENTITY = Object.freeze({
+  projectName: 'QRAlalay',
+  developer: 'QRAlalay Student Research Team',
+  academicInstitution: 'Technological University of the Philippines (TUP)',
+  studyLocation: 'Barangay 206, Tondo, Manila, Philippines',
+  projectClassification: 'Undergraduate Capstone Project',
+  systemClassification: 'Capstone System Prototype',
+  supportPrivacyEmail: 'qralalayhelp@gmail.com',
+  officialWebsite: 'https://www.qralalay.app',
+  tagline: 'Teknolohiya na may malasakit.',
+  purpose: 'Community assistance and resident reunification',
+});
 
-export const EFFECTIVE_DATE = 'Not yet published';
-export const ORGANIZATION_NAME = '[Barangay / Organization Name]';
-export const PRIVACY_CONTACT_EMAIL = '[privacy contact email]';
+export const EFFECTIVE_DATE = 'Draft — pending capstone adviser review';
+export const PRIVACY_CONTACT_EMAIL = PROJECT_IDENTITY.supportPrivacyEmail;
 
 export const PRIVACY_POLICY = [
   {
     heading: 'Who this covers',
     body:
-      `QRAlalay is operated by ${ORGANIZATION_NAME} for barangay emergency response. This policy covers barangay officials, ` +
+      `QRAlalay is a ${PROJECT_IDENTITY.systemClassification} developed by ${PROJECT_IDENTITY.developer} as an ${PROJECT_IDENTITY.projectClassification} at ${PROJECT_IDENTITY.academicInstitution}. The study location is ${PROJECT_IDENTITY.studyLocation}. ` +
+      'Naming the institution and study location does not mean that TUP or Barangay 206 officially operates, endorses, or owns QRAlalay. The designated personal information controller remains subject to confirmation with the capstone adviser. This policy covers barangay officials, ' +
       'guardians, barangay responders, and members of the public who scan a resident’s QR code. Accounts are provisioned by ' +
       'barangay staff — there is no public sign-up.',
   },
@@ -54,9 +62,8 @@ export const PRIVACY_POLICY = [
   {
     heading: 'Your rights',
     body:
-      'Under the Data Privacy Act of 2012 (RA 10173), you may ask to access, correct, or request deletion of your personal ' +
-      `data by contacting ${PRIVACY_CONTACT_EMAIL}. Because resident records are entered and managed by barangay staff, a ` +
-      'guardian or resident should first raise a correction request with their barangay office.',
+      'For privacy questions or requests concerning personal information, contact the QRAlalay Student Research Team. Because resident records are entered and managed by barangay staff, a guardian or resident may also raise a correction request with their barangay office. The designated personal information controller is pending confirmation with the capstone adviser.',
+    email: PRIVACY_CONTACT_EMAIL,
   },
   {
     heading: 'Security',
@@ -101,15 +108,43 @@ export const TERMS_OF_SERVICE = [
   },
   {
     heading: 'Contact',
-    body: `Questions about these terms can be sent to ${PRIVACY_CONTACT_EMAIL}.`,
+    body: 'For support or questions about these terms, contact:',
+    email: PRIVACY_CONTACT_EMAIL,
   },
 ];
 
 export const ABOUT_QRALALAY = [
   {
-    heading: 'About',
+    heading: 'Purpose',
+    body: `${PROJECT_IDENTITY.projectName} supports ${PROJECT_IDENTITY.purpose.toLowerCase()}.`,
+  },
+  {
+    heading: 'Project identity',
+    body: `${PROJECT_IDENTITY.systemClassification}, developed by ${PROJECT_IDENTITY.developer} as an ${PROJECT_IDENTITY.projectClassification} at ${PROJECT_IDENTITY.academicInstitution}.`,
+  },
+  {
+    heading: 'Designed for the community',
     body:
-      'QRAlalay is a barangay emergency response and resident safety system that uses QR-based identification ' +
-      'and coordinated Guardian-Responder confirmation.',
+      `The study location is ${PROJECT_IDENTITY.studyLocation}. QR technology facilitates coordinated assistance among community members, guardians, barangay officials, and responders. Naming TUP and Barangay 206 describes the academic and study context only; it does not claim that either officially operates, endorses, or owns QRAlalay.`,
+  },
+  {
+    heading: 'Inspired by bayanihan',
+    body:
+      'Inspired by the Filipino spirit of bayanihan, QRAlalay aims to promote accessible, technology-assisted community care.',
+  },
+  {
+    heading: 'System prototype',
+    body:
+      `${PROJECT_IDENTITY.systemClassification}. It is not an official emergency dispatch service or a substitute for professional emergency assistance.`,
+  },
+  {
+    heading: 'Tagline',
+    body: PROJECT_IDENTITY.tagline,
+  },
+  {
+    heading: 'Inquiries',
+    body: 'For support and privacy inquiries, contact:',
+    email: PRIVACY_CONTACT_EMAIL,
+    website: PROJECT_IDENTITY.officialWebsite,
   },
 ];

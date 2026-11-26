@@ -1,6 +1,10 @@
-# QRAlalayhelp
+# QRAlalay
 
-QRAlalay is the project name.
+QRAlalay is a community assistance and resident reunification project developed by the QRAlalay Student Research Team as an Undergraduate Capstone Project at the Technological University of the Philippines (TUP). Its study location is Barangay 206, Tondo, Manila, Philippines.
+
+The system is a **Capstone System Prototype**, inspired by bayanihan and guided by the tagline “Teknolohiya na may malasakit.” The institution and study location describe the academic context; this project does not claim that TUP or Barangay 206 officially operates, endorses, or owns QRAlalay. The designated personal information controller remains subject to confirmation with the capstone adviser. QRAlalay is not an official emergency dispatch service or a substitute for professional emergency assistance.
+
+Public support and privacy inquiries: [qralalayhelp@gmail.com](mailto:qralalayhelp@gmail.com) · [www.qralalay.app](https://www.qralalay.app)
 
 QRAlalay is organized as a mobile application, public website, and Supabase backend. The independent Digital Bayanihan prototype is maintained separately.
 

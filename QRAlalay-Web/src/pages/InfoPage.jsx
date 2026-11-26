@@ -17,7 +17,11 @@ export default function InfoPage({ page }) {
         {content.sections.map((section) => (
           <section key={section.heading}>
             <h2>{section.heading}</h2>
-            <p>{section.body}</p>
+            <p>
+              {section.body}
+              {section.email && <> <a href={`mailto:${section.email}`}>{section.email}</a></>}
+              {section.website && <> <a href={section.website}>{section.website}</a></>}
+            </p>
           </section>
         ))}
       </div>

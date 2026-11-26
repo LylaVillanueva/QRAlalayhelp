@@ -1,6 +1,8 @@
 # QRAlalay Website
 
-The QRAlalay Website is the public emergency response website for the QRAlalay system. A
+QRAlalay is a **Capstone System Prototype** for community assistance and resident reunification, developed by the QRAlalay Student Research Team as an Undergraduate Capstone Project at the Technological University of the Philippines (TUP). The study location is Barangay 206, Tondo, Manila, Philippines. This context does not represent TUP or Barangay 206 as an official operator, endorser, or owner. The system is not an official emergency dispatch service or a substitute for professional emergency assistance. Public support and privacy inquiries: [qralalayhelp@gmail.com](mailto:qralalayhelp@gmail.com) · [www.qralalay.app](https://www.qralalay.app). Tagline: “Teknolohiya na may malasakit.”
+
+The QRAlalay Website is the public assistance and resident reunification website for the QRAlalay system prototype. A
 resident's QR card links to a scan page. When a bystander scans the card, the
 website retrieves the resident's limited emergency profile and provides a
 quick way to notify the barangay and guardian.

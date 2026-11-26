@@ -5,7 +5,7 @@ These decisions require the responsible team, adviser, barangay, privacy personn
 | Decision | Why it matters | Suggested owner | Current state |
 |---|---|---|---|
 | Resolve Project B global default ACLs and confirm the authorized owner/admin path | Client roles currently inherit broad global default privileges for `postgres` and `supabase_admin`; foundation equivalence is incomplete. Do not repair migration history or deploy until reviewed and explicitly approved. | Supabase owner/DBA and project owner | Read-only catalog/role review complete. The available `postgres` connection cannot alter `supabase_admin` defaults. Project B remains untouched; it is identified by the CLI as production. |
-| Confirm participating barangay and operational owner | Scope, account authority and ongoing maintenance | Team/adviser/barangay | Unconfirmed in supplied report |
+| Confirm formal participation, operational owner, and personal information controller designation | Scope, account authority, privacy responsibilities and ongoing maintenance | Team/adviser/barangay | Study location confirmed as Barangay 206, Tondo, Manila, Philippines; formal participation, operational ownership, and controller designation remain unconfirmed |
 | Approve Call Barangay number, hours, fallback wording | Avoid wrong or misleading contact details | Barangay | No verified target number identified |
 | Confirm direct 911 wording/behavior | Immediate danger pathway must be independent and accurate | Adviser/barangay | Target requirement; copy pending review |
 | Confirm whether email/password is usable by officials/guardians | Supabase Auth initial method and recovery | Barangay/team | Pending validation |

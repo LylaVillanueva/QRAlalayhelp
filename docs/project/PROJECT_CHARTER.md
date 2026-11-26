@@ -2,7 +2,7 @@
 
 ## Purpose
 
-QRAlalay is a QR-based community assistance and resident reunification system for one participating Philippine barangay. It helps a lost, disoriented or vulnerable person connect with authorized guardians through barangay coordination. It is not professional dispatch, medical diagnosis, guaranteed rescue, continuous tracking, or a replacement for 911.
+QRAlalay is a Capstone System Prototype for community assistance and resident reunification, developed by the QRAlalay Student Research Team as an Undergraduate Capstone Project at the Technological University of the Philippines (TUP). Its study location is Barangay 206, Tondo, Manila, Philippines. This academic context does not establish that TUP or Barangay 206 officially operates, endorses, or owns QRAlalay. The designated personal information controller remains subject to confirmation with the capstone adviser. QRAlalay is not professional dispatch, medical diagnosis, guaranteed rescue, continuous tracking, or a substitute for professional emergency assistance.
 
 ## Initial scope
 
@@ -14,7 +14,7 @@ QRAlalay is a QR-based community assistance and resident reunification system fo
 
 ## Constraints and feasibility
 
-Four beginner student developers, one-barangay pilot, Android-first, limited budget. Existing screens, assets, workflows and uncommitted changes are valuable and must be preserved. The target is feasible only with P1 scope first, staged migration, early database authorization testing and a named operational owner. P2/P3 features must not delay core workflows.
+Student capstone team, study context in one barangay, Android-first, limited budget. Existing screens, assets, workflows and uncommitted changes are valuable and must be preserved. The target is feasible only with P1 scope first, staged migration, early database authorization testing and a confirmed operational owner. P2/P3 features must not delay core workflows.
 
 ## Exclusions
 
@@ -22,7 +22,7 @@ Professional emergency dispatch, ambulance dispatch, diagnosis, guaranteed respo
 
 ## Success evidence
 
-Verified role-scoped workflows, privacy-safe public QR responses, no duplicate cases under retry, no conflicting active assignments, independent observations, documented outcome and authorized closure, independent calling/help, direct negative authorization tests, Android/browser evaluation and truthful thesis evidence.
+Verified role-scoped workflows, privacy-safe public QR responses, no duplicate cases under retry, no conflicting active assignments, independent observations, documented outcome and authorized closure, independent calling/help, direct negative authorization tests, Android/browser evaluation and truthful capstone evidence.
 
 ## Governance
 

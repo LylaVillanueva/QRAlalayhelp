@@ -1,6 +1,6 @@
 import { typography, spacing, colors } from "../../constants/theme";
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Linking } from 'react-native';
 import Text from "../../components/AppText";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE, EFFECTIVE_DATE, ABOUT_QRALALAY } from "../../constants/legalContent";
@@ -26,6 +26,24 @@ export default function LegalScreen({ route, navigation }) {
           <View key={section.heading} style={styles.section}>
             <Text style={styles.sectionHeading}>{section.heading}</Text>
             <Text style={styles.sectionBody}>{section.body}</Text>
+            {section.email ? (
+              <Text
+                accessibilityRole="link"
+                style={styles.sectionLink}
+                onPress={() => Linking.openURL(`mailto:${section.email}`)}
+              >
+                {section.email}
+              </Text>
+            ) : null}
+            {section.website ? (
+              <Text
+                accessibilityRole="link"
+                style={styles.sectionLink}
+                onPress={() => Linking.openURL(section.website)}
+              >
+                {section.website}
+              </Text>
+            ) : null}
           </View>
         ))}
       </ScrollView>
@@ -43,4 +61,5 @@ const styles = StyleSheet.create({
   section: { marginBottom: 20 },
   sectionHeading: { fontSize: typography.section, fontFamily: 'Poppins_600SemiBold', color: colors.textPrimary, marginBottom: 6 },
   sectionBody: { fontSize: typography.body, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, lineHeight: Math.ceil(typography.body * 1.5) },
+  sectionLink: { fontSize: typography.body, fontFamily: 'Poppins_400Regular', color: colors.primary, lineHeight: Math.ceil(typography.body * 1.5), textDecorationLine: 'underline' },
 });
