@@ -1,4 +1,6 @@
-# QRAlalay
+# QRAlalayhelp
+
+QRAlalay is the project name.
 
 QRAlalay is organized as a mobile application, public website, and Supabase backend. The independent Digital Bayanihan prototype is maintained separately.
 
