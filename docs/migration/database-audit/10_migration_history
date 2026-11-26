@@ -1,0 +1,6 @@
+migration ledger’s columns
+Success. No rows returned
+
+version
+Failed to run sql query: ERROR:  42P01: relation "supabase_migrations.schema_migrations" does not exist
+LINE 2: FROM supabase_migrations.schema_migrations

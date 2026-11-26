@@ -64,7 +64,7 @@ export const env = {
   },
   email: {
     apiKey: process.env.EMAIL_PROVIDER_API_KEY ?? "",
-    from: process.env.EMAIL_FROM ?? "example@example.test",
+    from: process.env.EMAIL_FROM ?? "alerts@resqr.ph",
   },
 
   expo: {

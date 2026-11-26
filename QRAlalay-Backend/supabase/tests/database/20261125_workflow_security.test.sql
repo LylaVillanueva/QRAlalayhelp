@@ -1,5 +1,5 @@
 begin;
-select plan(40);
+select plan(42);
 
 -- Synthetic Auth, resident and case fixtures only. The entire test rolls back.
 insert into auth.users (id,email) values
@@ -110,6 +110,13 @@ select ok(public.close_assistance_case('86000000-0000-4000-8000-000000000001','S
   'official closure succeeds only after the required responder report and independent safety observations');
 
 reset role;
+select is((select reviewed_by::text||'|'||(reviewed_at is not null)::text
+  from qralalay.case_reports where case_id='86000000-0000-4000-8000-000000000001'),
+  '83000000-0000-4000-8000-000000000001|true',
+  'official closure records review on the responder report separately');
+select is((select status from qralalay.case_assignments
+  where case_id='86000000-0000-4000-8000-000000000001'),
+  'completed','official closure separately completes the responder assignment');
 set local role service_role;
 select ok((public.get_public_qr_view(repeat('a',64))->>'active')::boolean
   and not (public.get_public_qr_view(repeat('a',64)) ? 'address')

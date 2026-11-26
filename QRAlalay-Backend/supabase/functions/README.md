@@ -1,28 +1,19 @@
-# Edge Function configuration
+# Edge Functions
 
-These functions are local source only; they have not been deployed. Do not put service keys in mobile or website environment files.
+Live CLI verification on 2026-11-26 found eight active functions on Project B. The hosted `issue-qr-card` remains the older v1 implementation; local `issue-qr-card` has been updated and `export-qr-card` is new and absent remotely. Both await the three-migration release sequence, required secret setup, and approval.
 
-## Runtime settings
+## Function groups
 
-Hosted Supabase supplies the project URL and API keys to Edge Functions. The current runtime exposes the legacy `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` names used by this code. Do not try to create custom secrets whose names begin with `SUPABASE_`; that prefix is reserved. The service-role key must stay server-side and must never enter a mobile or website build. See [Supabase Edge Function secrets](https://supabase.com/docs/guides/functions/secrets).
+- Public, rate-limited: `public-qr-view`, `submit-assistance-request`, `public-assistance-status`, `cancel-assistance-request`, `location-share`.
+- Authenticated: `issue-qr-card`, `export-qr-card`, `invite-account`.
+- Worker-only: `notification-worker`, protected by its secret header.
 
-Set these application secrets in Project B after deployment is approved:
+Keep JWT verification enabled for authenticated functions. The worker is protected by its worker secret. Never deploy these functions with unreviewed `--no-verify-jwt` flags.
 
-- `RATE_LIMIT_PEPPER` (random high-entropy secret)
-- `PUBLIC_WEB_ORIGINS` (comma-separated exact HTTPS origins; no wildcard)
-- `PUBLIC_SITE_ORIGIN` (single HTTPS public website origin for QR URLs)
-- `NOTIFICATION_WORKER_SECRET` (send only as `x-worker-secret`)
-- `AUTH_INVITE_REDIRECT_URL` (optional allowlisted HTTPS app invitation callback)
-- `EXPO_ACCESS_TOKEN` (optional Expo push service credential)
+## Secrets
 
-For local Edge Function serving, put test-only values in the ignored `supabase/functions/.env`; do not commit real secrets. Hosted secrets can be set from a permission-restricted file with `supabase secrets set --env-file <secure-file> --project-ref <project-ref>`.
+The live secret-name listing confirms `RATE_LIMIT_PEPPER`, `PUBLIC_WEB_ORIGINS`, `PUBLIC_SITE_ORIGIN`, and `NOTIFICATION_WORKER_SECRET`. `QR_CARD_ENCRYPTION_KEY_V1` is required by the updated QR functions and was absent during verification; add it once only if still absent at deployment time. Preserve all existing secrets. `EXPO_ACCESS_TOKEN` and `AUTH_INVITE_REDIRECT_URL` are optional and were absent. Secret values are never included in this status record.
 
-The notification worker must be invoked by a trusted scheduled service using POST. It claims push rows, checks provider receipts, deletes expired temporary coordinates, and prunes stale rate-limit hashes. Do not expose the worker secret to clients. Configure a supported Supabase Cron/HTTP schedule only after deployment and secrets are set.
+Use Project B Edge Function Secrets for hosted values. For local function serving only, place test values in ignored `supabase/functions/.env`. Do not commit real secrets or use them in mobile/website builds.
 
-## Function responsibilities
-
-- Public, rate limited: `public-qr-view`, `submit-assistance-request`, `cancel-assistance-request`, `public-assistance-status`, and `location-share`.
-- Authenticated: `issue-qr-card` and `invite-account`; the latter rechecks the caller's active official profile inside the database transaction.
-- Internal: `notification-worker`, protected by the worker secret and server credentials.
-
-The database migration gives `service_role` access only to the server-side RPCs. Public request tokens and QR tokens are generated with Web Crypto and stored as SHA-256 hashes. Public responses contain no profile, resident address, guardian identity, or case UUID. Live coordinates are visible only through the authenticated case query, are limited to an active unexpired share, and are erased on stop, official closure, cancellation, or scheduled expiry cleanup.
+See [API contracts](../../docs/api-contracts.md), [security](../../docs/security.md), and [deployment](../../docs/deployment.md).

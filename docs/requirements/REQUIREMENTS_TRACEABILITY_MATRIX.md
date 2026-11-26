@@ -1,0 +1,18 @@
+# Requirements traceability matrix
+
+Target IDs and priorities follow v3.0. “Partial/local” means implementation or focused isolated verification exists; it does not imply complete acceptance or hosted deployment. See `docs/migration/GAP_ANALYSIS.md` and `docs/testing/TEST_RESULTS.md` for blockers.
+
+| Requirement | Current implementation reference | Target component | Status and remaining acceptance evidence |
+|---|---|---|---|
+| FR-01–07 Authentication/account | `screens/LogIn.js`, `lib/useSession.js`, Supabase Auth/profile RPCs, `invite-account` | Supabase Auth and protected profile/functions | **Partial/local.** Phone invitation/OTP claim passed local integration; test disabled users, recovery, session revocation, and privileged MFA. SMS provider and initial official process need approval. |
+| FR-08–14 Residents/guardians | `screens/admin/EnrollNewResident.js`, resident screens, protected RPCs and guardian links | RLS-protected residents and verified guardian links | **Partial/local.** Field and scope tests exist. Complete archive/link revocation and identity verification acceptance. |
+| FR-15–20 QR | official profile/QR screens, issue/revoke adapter, public view functions, Expo Print/Sharing | digest-only QR card function and print/export | **Partial/local.** Issue, public allowlist and revoke authorization/status/audit are verified; printable A5 card generation and QR-only disclosure have unit coverage. Confirm public disclosure, legacy URL handling, and physical print/save behavior. |
+| FR-21–28 Public request | `web/BystanderPublicWeb.js`, mobile public QR, Supabase Edge Functions | public Edge Functions, idempotency and requester proof | **Partial/local.** SQL/Edge happy paths and requester-owned status/cancel exist. Complete browser/device and abuse/load checks. |
+| FR-29–41 Cases | role home/alert/detail/report screens; protected case RPCs and private profile-topic broadcasts | transactional case lifecycle functions and Realtime | **Partial/local.** Assignment, accept/decline, safety, report/outcome, guarded closure, and private subscription forwarding/cleanup are tested. Verify live event delivery, reconnect and complete mobile walkthrough on device. |
+| FR-42–45 Calling/contacts | guardian `EmergencyHelpScreen.js`; public and settings screens | independently available help, verified contact table/cache | **Pending.** No verified hotline/offline cache; confirm call behavior with a controlled number. Never complete a 911 test call. |
+| FR-46–48 Localization/accessibility/help | `lib/translations.js`, accessibility context/settings, `LegalScreen.js` | English/Filipino and accessible labels/scaling | **Partial.** Existing strings/settings remain. Complete workflow language audit, TalkBack and scaling checks on device. |
+| FR-49 Accountability | audit screen and protected audit writes/views | append-only audit path and restricted view | **Partial/local.** Critical workflow audit writes and scoped access exist; complete action-by-action coverage and retention policy. |
+| FR-50 Connectivity | `lib/AppDataContext.js` and refresh errors | explicit connection/sync state | **Partial.** Refresh/error behavior exists; verify offline/reconnect and uncertain submission behavior on device. |
+| FR-51–54 P2/P3 | dashboard reports, location, notification preferences | deferred after P1 | **Partial/deferred.** Some dashboard/location/outbox pieces exist. Finish P1 operational acceptance before expanding. |
+
+The source audit must be refined to every acceptance criterion before production feature changes. Human approvals for privacy, safeguarding, contact verification and retention are not software requirements to infer.

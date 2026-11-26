@@ -1,0 +1,158 @@
+table_name,ordinal_position,column_name,data_type,udt_name,is_nullable,column_default
+assistance_cases,1,id,uuid,uuid,NO,gen_random_uuid()
+assistance_cases,2,barangay_id,uuid,uuid,NO,null
+assistance_cases,3,resident_id,uuid,uuid,NO,null
+assistance_cases,4,qr_card_id,uuid,uuid,YES,null
+assistance_cases,5,status,text,text,NO,'new'::text
+assistance_cases,6,public_note,text,text,YES,null
+assistance_cases,7,latitude,double precision,float8,YES,null
+assistance_cases,8,longitude,double precision,float8,YES,null
+assistance_cases,9,accuracy_meters,double precision,float8,YES,null
+assistance_cases,10,location_description,text,text,YES,null
+assistance_cases,11,location_captured_at,timestamp with time zone,timestamptz,YES,null
+assistance_cases,12,idempotency_key,uuid,uuid,YES,null
+assistance_cases,13,request_token_hash,text,text,YES,null
+assistance_cases,14,request_payload_hash,text,text,YES,null
+assistance_cases,15,acknowledged_by,uuid,uuid,YES,null
+assistance_cases,16,acknowledged_at,timestamp with time zone,timestamptz,YES,null
+assistance_cases,17,outcome,text,text,YES,null
+assistance_cases,18,closed_by,uuid,uuid,YES,null
+assistance_cases,19,closed_at,timestamp with time zone,timestamptz,YES,null
+assistance_cases,20,closure_reason,text,text,YES,null
+assistance_cases,21,version,integer,int4,NO,1
+assistance_cases,22,created_at,timestamp with time zone,timestamptz,NO,now()
+assistance_cases,23,updated_at,timestamp with time zone,timestamptz,NO,now()
+audit_logs,1,id,uuid,uuid,NO,gen_random_uuid()
+audit_logs,2,barangay_id,uuid,uuid,NO,null
+audit_logs,3,actor_id,uuid,uuid,YES,null
+audit_logs,4,action,text,text,NO,null
+audit_logs,5,target_type,text,text,NO,null
+audit_logs,6,target_id,uuid,uuid,YES,null
+audit_logs,7,result,text,text,NO,null
+audit_logs,8,correlation_id,uuid,uuid,YES,null
+audit_logs,9,created_at,timestamp with time zone,timestamptz,NO,now()
+barangay_contacts,1,id,uuid,uuid,NO,gen_random_uuid()
+barangay_contacts,2,barangay_id,uuid,uuid,NO,null
+barangay_contacts,3,label,text,text,NO,null
+barangay_contacts,4,phone,text,text,NO,null
+barangay_contacts,5,availability,text,text,YES,null
+barangay_contacts,6,is_primary,boolean,bool,NO,false
+barangay_contacts,7,is_active,boolean,bool,NO,false
+barangay_contacts,8,verified_by,uuid,uuid,YES,null
+barangay_contacts,9,verified_at,timestamp with time zone,timestamptz,YES,null
+barangays,1,id,uuid,uuid,NO,gen_random_uuid()
+barangays,2,name,text,text,NO,null
+barangays,3,is_active,boolean,bool,NO,true
+barangays,4,created_at,timestamp with time zone,timestamptz,NO,now()
+case_assignments,1,id,uuid,uuid,NO,gen_random_uuid()
+case_assignments,2,barangay_id,uuid,uuid,NO,null
+case_assignments,3,case_id,uuid,uuid,NO,null
+case_assignments,4,responder_id,uuid,uuid,NO,null
+case_assignments,5,assigned_by,uuid,uuid,NO,null
+case_assignments,6,status,text,text,NO,'pending_acceptance'::text
+case_assignments,7,assigned_at,timestamp with time zone,timestamptz,NO,now()
+case_assignments,8,accepted_at,timestamp with time zone,timestamptz,YES,null
+case_assignments,9,ended_at,timestamp with time zone,timestamptz,YES,null
+case_assignments,10,end_reason,text,text,YES,null
+case_events,1,id,uuid,uuid,NO,gen_random_uuid()
+case_events,2,barangay_id,uuid,uuid,NO,null
+case_events,3,case_id,uuid,uuid,NO,null
+case_events,4,actor_id,uuid,uuid,YES,null
+case_events,5,event_type,text,text,NO,null
+case_events,6,previous_status,text,text,YES,null
+case_events,7,new_status,text,text,YES,null
+case_events,8,reason,text,text,YES,null
+case_events,9,created_at,timestamp with time zone,timestamptz,NO,now()
+case_reports,1,id,uuid,uuid,NO,gen_random_uuid()
+case_reports,2,barangay_id,uuid,uuid,NO,null
+case_reports,3,case_id,uuid,uuid,NO,null
+case_reports,4,assignment_id,uuid,uuid,NO,null
+case_reports,5,submitted_by,uuid,uuid,NO,null
+case_reports,6,actions_taken,text,text,NO,null
+case_reports,7,resident_condition,text,text,NO,null
+case_reports,8,outcome,text,text,NO,null
+case_reports,9,handover_details,text,text,YES,null
+case_reports,10,submitted_at,timestamp with time zone,timestamptz,NO,now()
+case_reports,11,reviewed_by,uuid,uuid,YES,null
+case_reports,12,reviewed_at,timestamp with time zone,timestamptz,YES,null
+device_tokens,1,id,uuid,uuid,NO,gen_random_uuid()
+device_tokens,2,barangay_id,uuid,uuid,NO,null
+device_tokens,3,user_id,uuid,uuid,NO,null
+device_tokens,4,expo_token,text,text,NO,null
+device_tokens,5,is_active,boolean,bool,NO,true
+device_tokens,6,updated_at,timestamp with time zone,timestamptz,NO,now()
+guardian_links,1,id,uuid,uuid,NO,gen_random_uuid()
+guardian_links,2,barangay_id,uuid,uuid,NO,null
+guardian_links,3,resident_id,uuid,uuid,NO,null
+guardian_links,4,guardian_id,uuid,uuid,NO,null
+guardian_links,5,relationship,text,text,NO,null
+guardian_links,6,status,text,text,NO,'pending'::text
+guardian_links,7,verified_by,uuid,uuid,YES,null
+guardian_links,8,verified_at,timestamp with time zone,timestamptz,YES,null
+guardian_links,9,revoked_at,timestamp with time zone,timestamptz,YES,null
+guardian_links,10,created_at,timestamp with time zone,timestamptz,NO,now()
+notification_outbox,1,id,uuid,uuid,NO,gen_random_uuid()
+notification_outbox,2,notification_id,uuid,uuid,NO,null
+notification_outbox,3,device_token_id,uuid,uuid,NO,null
+notification_outbox,4,status,text,text,NO,'pending'::text
+notification_outbox,5,attempts,integer,int4,NO,0
+notification_outbox,6,next_attempt_at,timestamp with time zone,timestamptz,NO,now()
+notification_outbox,7,lease_until,timestamp with time zone,timestamptz,YES,null
+notification_outbox,8,lease_token,uuid,uuid,YES,null
+notification_outbox,9,provider_ticket_id,text,text,YES,null
+notification_outbox,10,last_error_code,text,text,YES,null
+notification_outbox,11,created_at,timestamp with time zone,timestamptz,NO,now()
+notification_outbox,12,updated_at,timestamp with time zone,timestamptz,NO,now()
+notifications,1,id,uuid,uuid,NO,gen_random_uuid()
+notifications,2,barangay_id,uuid,uuid,NO,null
+notifications,3,recipient_id,uuid,uuid,NO,null
+notifications,4,case_id,uuid,uuid,NO,null
+notifications,5,event_id,uuid,uuid,NO,null
+notifications,6,event_type,text,text,NO,null
+notifications,7,read_at,timestamp with time zone,timestamptz,YES,null
+notifications,8,created_at,timestamp with time zone,timestamptz,NO,now()
+profiles,1,id,uuid,uuid,NO,gen_random_uuid()
+profiles,2,auth_user_id,uuid,uuid,YES,null
+profiles,3,barangay_id,uuid,uuid,NO,null
+profiles,4,full_name,text,text,NO,null
+profiles,5,role,text,text,NO,null
+profiles,6,phone,text,text,YES,null
+profiles,7,is_active,boolean,bool,NO,false
+profiles,8,created_at,timestamp with time zone,timestamptz,NO,now()
+profiles,9,updated_at,timestamp with time zone,timestamptz,NO,now()
+qr_cards,1,id,uuid,uuid,NO,gen_random_uuid()
+qr_cards,2,barangay_id,uuid,uuid,NO,null
+qr_cards,3,resident_id,uuid,uuid,NO,null
+qr_cards,4,token_hash,text,text,NO,null
+qr_cards,5,status,text,text,NO,'active'::text
+qr_cards,6,issued_by,uuid,uuid,NO,null
+qr_cards,7,issued_at,timestamp with time zone,timestamptz,NO,now()
+qr_cards,8,revoked_at,timestamp with time zone,timestamptz,YES,null
+residents,1,id,uuid,uuid,NO,gen_random_uuid()
+residents,2,barangay_id,uuid,uuid,NO,null
+residents,3,user_id,uuid,uuid,YES,null
+residents,4,full_name,text,text,NO,null
+residents,5,phone,text,text,YES,null
+residents,6,address,text,text,YES,null
+residents,7,resident_category,text,text,YES,null
+residents,8,display_name,text,text,YES,null
+residents,9,assistance_instructions,text,text,YES,null
+residents,10,public_disclosure_approved,boolean,bool,NO,false
+residents,11,disclosure_approved_by,uuid,uuid,YES,null
+residents,12,disclosure_approved_at,timestamp with time zone,timestamptz,YES,null
+residents,13,disclosure_reference,text,text,YES,null
+residents,14,registration_status,text,text,NO,'active'::text
+residents,15,created_by,uuid,uuid,NO,null
+residents,16,created_at,timestamp with time zone,timestamptz,NO,now()
+residents,17,updated_at,timestamp with time zone,timestamptz,NO,now()
+safety_observations,1,id,uuid,uuid,NO,gen_random_uuid()
+safety_observations,2,barangay_id,uuid,uuid,NO,null
+safety_observations,3,case_id,uuid,uuid,NO,null
+safety_observations,4,observer_id,uuid,uuid,NO,null
+safety_observations,5,observer_role,text,text,NO,null
+safety_observations,6,assignment_id,uuid,uuid,YES,null
+safety_observations,7,observation,text,text,NO,null
+safety_observations,8,basis,text,text,NO,null
+safety_observations,9,note,text,text,YES,null
+safety_observations,10,observed_at,timestamp with time zone,timestamptz,NO,null
+safety_observations,11,created_at,timestamp with time zone,timestamptz,NO,now()

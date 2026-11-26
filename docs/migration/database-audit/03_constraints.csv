@@ -1,0 +1,118 @@
+schema_name,table_name,constraint_name,constraint_type,definition
+qralalay,assistance_cases,assistance_cases_acknowledged_by_barangay_id_fkey,f,"FOREIGN KEY (acknowledged_by, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,assistance_cases,assistance_cases_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,assistance_cases,assistance_cases_check,c,CHECK (((latitude IS NULL) = (longitude IS NULL)))
+qralalay,assistance_cases,assistance_cases_check1,c,CHECK (((((latitude >= ('-90'::integer)::double precision) AND (latitude <= (90)::double precision)) AND ((longitude >= ('-180'::integer)::double precision) AND (longitude <= (180)::double precision))) OR (latitude IS NULL)))
+qralalay,assistance_cases,assistance_cases_check2,c,CHECK (((accuracy_meters IS NULL) OR ((latitude IS NOT NULL) AND (accuracy_meters >= (0)::double precision) AND (accuracy_meters < 'Infinity'::double precision))))
+qralalay,assistance_cases,assistance_cases_check3,c,CHECK (((acknowledged_by IS NULL) = (acknowledged_at IS NULL)))
+qralalay,assistance_cases,assistance_cases_check4,c,CHECK (((qr_card_id IS NULL) OR ((idempotency_key IS NOT NULL) AND (request_token_hash IS NOT NULL) AND (request_payload_hash IS NOT NULL))))
+qralalay,assistance_cases,assistance_cases_check5,c,"CHECK ((((status = 'closed'::text) AND (closed_at IS NOT NULL) AND (outcome IS NOT NULL) AND (NULLIF(TRIM(BOTH FROM closure_reason), ''::text) IS NOT NULL) AND ((closed_by IS NOT NULL) OR (outcome = 'cancelled'::text))) OR ((status <> 'closed'::text) AND (closed_at IS NULL) AND (closed_by IS NULL) AND (outcome IS NULL) AND (closure_reason IS NULL))))"
+qralalay,assistance_cases,assistance_cases_closed_by_barangay_id_fkey,f,"FOREIGN KEY (closed_by, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,assistance_cases,assistance_cases_id_barangay_id_key,u,"UNIQUE (id, barangay_id)"
+qralalay,assistance_cases,assistance_cases_idempotency_key_key,u,UNIQUE (idempotency_key)
+qralalay,assistance_cases,assistance_cases_location_description_check,c,CHECK ((length(location_description) <= 500))
+qralalay,assistance_cases,assistance_cases_outcome_check,c,"CHECK ((outcome = ANY (ARRAY['reunited'::text, 'assisted_independently'::text, 'referred'::text, 'transferred'::text, 'cancelled'::text, 'duplicate'::text])))"
+qralalay,assistance_cases,assistance_cases_pkey,p,PRIMARY KEY (id)
+qralalay,assistance_cases,assistance_cases_public_note_check,c,CHECK ((length(public_note) <= 1000))
+qralalay,assistance_cases,assistance_cases_qr_card_id_resident_id_barangay_id_fkey,f,"FOREIGN KEY (qr_card_id, resident_id, barangay_id) REFERENCES qralalay.qr_cards(id, resident_id, barangay_id)"
+qralalay,assistance_cases,assistance_cases_request_payload_hash_check,c,CHECK ((request_payload_hash ~ '^[0-9a-f]{64}$'::text))
+qralalay,assistance_cases,assistance_cases_request_token_hash_check,c,CHECK ((request_token_hash ~ '^[0-9a-f]{64}$'::text))
+qralalay,assistance_cases,assistance_cases_request_token_hash_key,u,UNIQUE (request_token_hash)
+qralalay,assistance_cases,assistance_cases_resident_id_barangay_id_fkey,f,"FOREIGN KEY (resident_id, barangay_id) REFERENCES qralalay.residents(id, barangay_id)"
+qralalay,assistance_cases,assistance_cases_status_check,c,"CHECK ((status = ANY (ARRAY['new'::text, 'in_progress'::text, 'escalated'::text, 'closed'::text])))"
+qralalay,assistance_cases,assistance_cases_version_check,c,CHECK ((version > 0))
+qralalay,audit_logs,audit_logs_actor_id_barangay_id_fkey,f,"FOREIGN KEY (actor_id, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,audit_logs,audit_logs_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,audit_logs,audit_logs_pkey,p,PRIMARY KEY (id)
+qralalay,barangay_contacts,barangay_contacts_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,barangay_contacts,barangay_contacts_check,c,CHECK (((NOT is_active) OR ((verified_by IS NOT NULL) AND (verified_at IS NOT NULL))))
+qralalay,barangay_contacts,barangay_contacts_phone_check,c,"CHECK ((phone ~ '^[+]?[0-9]{3,15}$'::text))"
+qralalay,barangay_contacts,barangay_contacts_phone_check1,c,CHECK ((phone <> '911'::text))
+qralalay,barangay_contacts,barangay_contacts_pkey,p,PRIMARY KEY (id)
+qralalay,barangay_contacts,barangay_contacts_verified_by_barangay_id_fkey,f,"FOREIGN KEY (verified_by, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,barangays,barangays_name_check,c,CHECK (((length(TRIM(BOTH FROM name)) >= 1) AND (length(TRIM(BOTH FROM name)) <= 150)))
+qralalay,barangays,barangays_pkey,p,PRIMARY KEY (id)
+qralalay,case_assignments,case_assignments_assigned_by_barangay_id_fkey,f,"FOREIGN KEY (assigned_by, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,case_assignments,case_assignments_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,case_assignments,case_assignments_case_id_barangay_id_fkey,f,"FOREIGN KEY (case_id, barangay_id) REFERENCES qralalay.assistance_cases(id, barangay_id)"
+qralalay,case_assignments,case_assignments_check,c,"CHECK (((status = ANY (ARRAY['declined'::text, 'withdrawn'::text, 'completed'::text])) = (ended_at IS NOT NULL)))"
+qralalay,case_assignments,case_assignments_check1,c,"CHECK (((status <> ALL (ARRAY['accepted'::text, 'completed'::text])) OR (accepted_at IS NOT NULL)))"
+qralalay,case_assignments,case_assignments_id_case_id_barangay_id_responder_id_key,u,"UNIQUE (id, case_id, barangay_id, responder_id)"
+qralalay,case_assignments,case_assignments_pkey,p,PRIMARY KEY (id)
+qralalay,case_assignments,case_assignments_responder_id_barangay_id_fkey,f,"FOREIGN KEY (responder_id, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,case_assignments,case_assignments_status_check,c,"CHECK ((status = ANY (ARRAY['pending_acceptance'::text, 'accepted'::text, 'declined'::text, 'withdrawn'::text, 'completed'::text])))"
+qralalay,case_events,case_events_actor_id_barangay_id_fkey,f,"FOREIGN KEY (actor_id, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,case_events,case_events_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,case_events,case_events_case_id_barangay_id_fkey,f,"FOREIGN KEY (case_id, barangay_id) REFERENCES qralalay.assistance_cases(id, barangay_id)"
+qralalay,case_events,case_events_id_case_id_barangay_id_key,u,"UNIQUE (id, case_id, barangay_id)"
+qralalay,case_events,case_events_pkey,p,PRIMARY KEY (id)
+qralalay,case_reports,case_reports_actions_taken_check,c,CHECK (((length(TRIM(BOTH FROM actions_taken)) >= 1) AND (length(TRIM(BOTH FROM actions_taken)) <= 4000)))
+qralalay,case_reports,case_reports_assignment_id_case_id_barangay_id_submitted_b_fkey,f,"FOREIGN KEY (assignment_id, case_id, barangay_id, submitted_by) REFERENCES qralalay.case_assignments(id, case_id, barangay_id, responder_id)"
+qralalay,case_reports,case_reports_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,case_reports,case_reports_case_id_barangay_id_fkey,f,"FOREIGN KEY (case_id, barangay_id) REFERENCES qralalay.assistance_cases(id, barangay_id)"
+qralalay,case_reports,case_reports_check,c,CHECK (((reviewed_by IS NULL) = (reviewed_at IS NULL)))
+qralalay,case_reports,case_reports_check1,c,"CHECK (((outcome <> ALL (ARRAY['reunited'::text, 'referred'::text, 'transferred'::text])) OR (NULLIF(TRIM(BOTH FROM handover_details), ''::text) IS NOT NULL)))"
+qralalay,case_reports,case_reports_outcome_check,c,"CHECK ((outcome = ANY (ARRAY['reunited'::text, 'assisted_independently'::text, 'referred'::text, 'transferred'::text])))"
+qralalay,case_reports,case_reports_pkey,p,PRIMARY KEY (id)
+qralalay,case_reports,case_reports_resident_condition_check,c,CHECK (((length(TRIM(BOTH FROM resident_condition)) >= 1) AND (length(TRIM(BOTH FROM resident_condition)) <= 2000)))
+qralalay,case_reports,case_reports_reviewed_by_barangay_id_fkey,f,"FOREIGN KEY (reviewed_by, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,device_tokens,device_tokens_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,device_tokens,device_tokens_expo_token_key,u,UNIQUE (expo_token)
+qralalay,device_tokens,device_tokens_pkey,p,PRIMARY KEY (id)
+qralalay,device_tokens,device_tokens_user_id_barangay_id_fkey,f,"FOREIGN KEY (user_id, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,guardian_links,guardian_links_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,guardian_links,guardian_links_check,c,CHECK (((status <> 'verified'::text) OR ((verified_by IS NOT NULL) AND (verified_at IS NOT NULL) AND (revoked_at IS NULL))))
+qralalay,guardian_links,guardian_links_check1,c,CHECK (((status = 'revoked'::text) = (revoked_at IS NOT NULL)))
+qralalay,guardian_links,guardian_links_guardian_id_barangay_id_fkey,f,"FOREIGN KEY (guardian_id, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,guardian_links,guardian_links_pkey,p,PRIMARY KEY (id)
+qralalay,guardian_links,guardian_links_resident_id_barangay_id_fkey,f,"FOREIGN KEY (resident_id, barangay_id) REFERENCES qralalay.residents(id, barangay_id)"
+qralalay,guardian_links,guardian_links_status_check,c,"CHECK ((status = ANY (ARRAY['pending'::text, 'verified'::text, 'revoked'::text])))"
+qralalay,guardian_links,guardian_links_verified_by_barangay_id_fkey,f,"FOREIGN KEY (verified_by, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,notification_outbox,notification_outbox_attempts_check,c,CHECK ((attempts >= 0))
+qralalay,notification_outbox,notification_outbox_device_token_id_fkey,f,FOREIGN KEY (device_token_id) REFERENCES qralalay.device_tokens(id)
+qralalay,notification_outbox,notification_outbox_notification_id_device_token_id_key,u,"UNIQUE (notification_id, device_token_id)"
+qralalay,notification_outbox,notification_outbox_notification_id_fkey,f,FOREIGN KEY (notification_id) REFERENCES qralalay.notifications(id)
+qralalay,notification_outbox,notification_outbox_pkey,p,PRIMARY KEY (id)
+qralalay,notification_outbox,notification_outbox_status_check,c,"CHECK ((status = ANY (ARRAY['pending'::text, 'processing'::text, 'awaiting_receipt'::text, 'provider_accepted'::text, 'failed'::text, 'cancelled'::text])))"
+qralalay,notifications,notifications_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,notifications,notifications_case_id_barangay_id_fkey,f,"FOREIGN KEY (case_id, barangay_id) REFERENCES qralalay.assistance_cases(id, barangay_id)"
+qralalay,notifications,notifications_event_id_case_id_barangay_id_fkey,f,"FOREIGN KEY (event_id, case_id, barangay_id) REFERENCES qralalay.case_events(id, case_id, barangay_id)"
+qralalay,notifications,notifications_event_id_recipient_id_key,u,"UNIQUE (event_id, recipient_id)"
+qralalay,notifications,notifications_pkey,p,PRIMARY KEY (id)
+qralalay,notifications,notifications_recipient_id_barangay_id_fkey,f,"FOREIGN KEY (recipient_id, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,profiles,profiles_auth_user_id_fkey,f,FOREIGN KEY (auth_user_id) REFERENCES auth.users(id) ON DELETE SET NULL
+qralalay,profiles,profiles_auth_user_id_key,u,UNIQUE (auth_user_id)
+qralalay,profiles,profiles_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,profiles,profiles_full_name_check,c,CHECK (((length(TRIM(BOTH FROM full_name)) >= 1) AND (length(TRIM(BOTH FROM full_name)) <= 200)))
+qralalay,profiles,profiles_id_barangay_id_key,u,"UNIQUE (id, barangay_id)"
+qralalay,profiles,profiles_pkey,p,PRIMARY KEY (id)
+qralalay,profiles,profiles_role_check,c,"CHECK ((role = ANY (ARRAY['official'::text, 'guardian'::text, 'responder'::text, 'resident'::text])))"
+qralalay,qr_cards,qr_cards_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,qr_cards,qr_cards_check,c,CHECK (((status = 'revoked'::text) = (revoked_at IS NOT NULL)))
+qralalay,qr_cards,qr_cards_id_resident_id_barangay_id_key,u,"UNIQUE (id, resident_id, barangay_id)"
+qralalay,qr_cards,qr_cards_issued_by_barangay_id_fkey,f,"FOREIGN KEY (issued_by, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,qr_cards,qr_cards_pkey,p,PRIMARY KEY (id)
+qralalay,qr_cards,qr_cards_resident_id_barangay_id_fkey,f,"FOREIGN KEY (resident_id, barangay_id) REFERENCES qralalay.residents(id, barangay_id)"
+qralalay,qr_cards,qr_cards_status_check,c,"CHECK ((status = ANY (ARRAY['active'::text, 'revoked'::text])))"
+qralalay,qr_cards,qr_cards_token_hash_check,c,CHECK ((token_hash ~ '^[0-9a-f]{64}$'::text))
+qralalay,qr_cards,qr_cards_token_hash_key,u,UNIQUE (token_hash)
+qralalay,residents,residents_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,residents,residents_check,c,"CHECK (((NOT public_disclosure_approved) OR ((disclosure_approved_by IS NOT NULL) AND (disclosure_approved_at IS NOT NULL) AND (NULLIF(TRIM(BOTH FROM disclosure_reference), ''::text) IS NOT NULL))))"
+qralalay,residents,residents_created_by_barangay_id_fkey,f,"FOREIGN KEY (created_by, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,residents,residents_disclosure_approved_by_barangay_id_fkey,f,"FOREIGN KEY (disclosure_approved_by, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,residents,residents_full_name_check,c,CHECK (((length(TRIM(BOTH FROM full_name)) >= 1) AND (length(TRIM(BOTH FROM full_name)) <= 200)))
+qralalay,residents,residents_id_barangay_id_key,u,"UNIQUE (id, barangay_id)"
+qralalay,residents,residents_pkey,p,PRIMARY KEY (id)
+qralalay,residents,residents_registration_status_check,c,"CHECK ((registration_status = ANY (ARRAY['active'::text, 'archived'::text])))"
+qralalay,residents,residents_user_id_barangay_id_fkey,f,"FOREIGN KEY (user_id, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,residents,residents_user_id_key,u,UNIQUE (user_id)
+qralalay,safety_observations,safety_observations_assignment_id_case_id_barangay_id_obse_fkey,f,"FOREIGN KEY (assignment_id, case_id, barangay_id, observer_id) REFERENCES qralalay.case_assignments(id, case_id, barangay_id, responder_id)"
+qralalay,safety_observations,safety_observations_barangay_id_fkey,f,FOREIGN KEY (barangay_id) REFERENCES qralalay.barangays(id)
+qralalay,safety_observations,safety_observations_basis_check,c,"CHECK ((basis = ANY (ARRAY['in_person'::text, 'remote_communication'::text, 'third_party'::text, 'unknown'::text])))"
+qralalay,safety_observations,safety_observations_case_id_barangay_id_fkey,f,"FOREIGN KEY (case_id, barangay_id) REFERENCES qralalay.assistance_cases(id, barangay_id)"
+qralalay,safety_observations,safety_observations_check,c,CHECK (((observer_role = 'responder'::text) = (assignment_id IS NOT NULL)))
+qralalay,safety_observations,safety_observations_note_check,c,CHECK ((length(note) <= 2000))
+qralalay,safety_observations,safety_observations_observation_check,c,"CHECK ((observation = ANY (ARRAY['safe'::text, 'not_safe'::text, 'unable_to_verify'::text])))"
+qralalay,safety_observations,safety_observations_observer_id_barangay_id_fkey,f,"FOREIGN KEY (observer_id, barangay_id) REFERENCES qralalay.profiles(id, barangay_id)"
+qralalay,safety_observations,safety_observations_observer_role_check,c,"CHECK ((observer_role = ANY (ARRAY['guardian'::text, 'responder'::text, 'official'::text])))"
+qralalay,safety_observations,safety_observations_pkey,p,PRIMARY KEY (id)

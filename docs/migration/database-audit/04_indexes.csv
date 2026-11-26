@@ -1,0 +1,47 @@
+tablename,indexname,indexdef
+assistance_cases,assistance_cases_id_barangay_id_key,"CREATE UNIQUE INDEX assistance_cases_id_barangay_id_key ON qralalay.assistance_cases USING btree (id, barangay_id)"
+assistance_cases,assistance_cases_idempotency_key_key,CREATE UNIQUE INDEX assistance_cases_idempotency_key_key ON qralalay.assistance_cases USING btree (idempotency_key)
+assistance_cases,assistance_cases_pkey,CREATE UNIQUE INDEX assistance_cases_pkey ON qralalay.assistance_cases USING btree (id)
+assistance_cases,assistance_cases_request_token_hash_key,CREATE UNIQUE INDEX assistance_cases_request_token_hash_key ON qralalay.assistance_cases USING btree (request_token_hash)
+assistance_cases,cases_barangay_status,"CREATE INDEX cases_barangay_status ON qralalay.assistance_cases USING btree (barangay_id, status, created_at DESC)"
+assistance_cases,cases_resident_history,"CREATE INDEX cases_resident_history ON qralalay.assistance_cases USING btree (resident_id, created_at DESC)"
+audit_logs,audit_barangay,"CREATE INDEX audit_barangay ON qralalay.audit_logs USING btree (barangay_id, created_at DESC)"
+audit_logs,audit_logs_pkey,CREATE UNIQUE INDEX audit_logs_pkey ON qralalay.audit_logs USING btree (id)
+barangay_contacts,barangay_contacts_pkey,CREATE UNIQUE INDEX barangay_contacts_pkey ON qralalay.barangay_contacts USING btree (id)
+barangay_contacts,one_primary_contact,CREATE UNIQUE INDEX one_primary_contact ON qralalay.barangay_contacts USING btree (barangay_id) WHERE (is_primary AND is_active)
+barangays,barangays_pkey,CREATE UNIQUE INDEX barangays_pkey ON qralalay.barangays USING btree (id)
+case_assignments,assignments_responder,"CREATE INDEX assignments_responder ON qralalay.case_assignments USING btree (responder_id, status)"
+case_assignments,case_assignments_id_case_id_barangay_id_responder_id_key,"CREATE UNIQUE INDEX case_assignments_id_case_id_barangay_id_responder_id_key ON qralalay.case_assignments USING btree (id, case_id, barangay_id, responder_id)"
+case_assignments,case_assignments_pkey,CREATE UNIQUE INDEX case_assignments_pkey ON qralalay.case_assignments USING btree (id)
+case_assignments,one_active_assignment,"CREATE UNIQUE INDEX one_active_assignment ON qralalay.case_assignments USING btree (case_id) WHERE (status = ANY (ARRAY['pending_acceptance'::text, 'accepted'::text]))"
+case_events,case_events_id_case_id_barangay_id_key,"CREATE UNIQUE INDEX case_events_id_case_id_barangay_id_key ON qralalay.case_events USING btree (id, case_id, barangay_id)"
+case_events,case_events_pkey,CREATE UNIQUE INDEX case_events_pkey ON qralalay.case_events USING btree (id)
+case_events,events_case,"CREATE INDEX events_case ON qralalay.case_events USING btree (case_id, created_at DESC)"
+case_reports,case_reports_pkey,CREATE UNIQUE INDEX case_reports_pkey ON qralalay.case_reports USING btree (id)
+case_reports,reports_case,"CREATE INDEX reports_case ON qralalay.case_reports USING btree (case_id, submitted_at DESC)"
+device_tokens,device_tokens_expo_token_key,CREATE UNIQUE INDEX device_tokens_expo_token_key ON qralalay.device_tokens USING btree (expo_token)
+device_tokens,device_tokens_pkey,CREATE UNIQUE INDEX device_tokens_pkey ON qralalay.device_tokens USING btree (id)
+device_tokens,tokens_user,"CREATE INDEX tokens_user ON qralalay.device_tokens USING btree (user_id, is_active)"
+guardian_links,guardian_links_guardian,"CREATE INDEX guardian_links_guardian ON qralalay.guardian_links USING btree (guardian_id, status)"
+guardian_links,guardian_links_pkey,CREATE UNIQUE INDEX guardian_links_pkey ON qralalay.guardian_links USING btree (id)
+guardian_links,one_current_guardian_link,"CREATE UNIQUE INDEX one_current_guardian_link ON qralalay.guardian_links USING btree (resident_id, guardian_id) WHERE (status = ANY (ARRAY['pending'::text, 'verified'::text]))"
+notification_outbox,notification_outbox_notification_id_device_token_id_key,"CREATE UNIQUE INDEX notification_outbox_notification_id_device_token_id_key ON qralalay.notification_outbox USING btree (notification_id, device_token_id)"
+notification_outbox,notification_outbox_pkey,CREATE UNIQUE INDEX notification_outbox_pkey ON qralalay.notification_outbox USING btree (id)
+notification_outbox,outbox_due,"CREATE INDEX outbox_due ON qralalay.notification_outbox USING btree (status, next_attempt_at)"
+notifications,notifications_event_id_recipient_id_key,"CREATE UNIQUE INDEX notifications_event_id_recipient_id_key ON qralalay.notifications USING btree (event_id, recipient_id)"
+notifications,notifications_pkey,CREATE UNIQUE INDEX notifications_pkey ON qralalay.notifications USING btree (id)
+notifications,notifications_recipient,"CREATE INDEX notifications_recipient ON qralalay.notifications USING btree (recipient_id, created_at DESC)"
+profiles,profiles_auth_user_id_key,CREATE UNIQUE INDEX profiles_auth_user_id_key ON qralalay.profiles USING btree (auth_user_id)
+profiles,profiles_barangay_role,"CREATE INDEX profiles_barangay_role ON qralalay.profiles USING btree (barangay_id, role, is_active)"
+profiles,profiles_id_barangay_id_key,"CREATE UNIQUE INDEX profiles_id_barangay_id_key ON qralalay.profiles USING btree (id, barangay_id)"
+profiles,profiles_pkey,CREATE UNIQUE INDEX profiles_pkey ON qralalay.profiles USING btree (id)
+qr_cards,one_active_card,CREATE UNIQUE INDEX one_active_card ON qralalay.qr_cards USING btree (resident_id) WHERE (status = 'active'::text)
+qr_cards,qr_cards_id_resident_id_barangay_id_key,"CREATE UNIQUE INDEX qr_cards_id_resident_id_barangay_id_key ON qralalay.qr_cards USING btree (id, resident_id, barangay_id)"
+qr_cards,qr_cards_pkey,CREATE UNIQUE INDEX qr_cards_pkey ON qralalay.qr_cards USING btree (id)
+qr_cards,qr_cards_token_hash_key,CREATE UNIQUE INDEX qr_cards_token_hash_key ON qralalay.qr_cards USING btree (token_hash)
+residents,residents_barangay_status,"CREATE INDEX residents_barangay_status ON qralalay.residents USING btree (barangay_id, registration_status)"
+residents,residents_id_barangay_id_key,"CREATE UNIQUE INDEX residents_id_barangay_id_key ON qralalay.residents USING btree (id, barangay_id)"
+residents,residents_pkey,CREATE UNIQUE INDEX residents_pkey ON qralalay.residents USING btree (id)
+residents,residents_user_id_key,CREATE UNIQUE INDEX residents_user_id_key ON qralalay.residents USING btree (user_id)
+safety_observations,observations_case,"CREATE INDEX observations_case ON qralalay.safety_observations USING btree (case_id, created_at DESC)"
+safety_observations,safety_observations_pkey,CREATE UNIQUE INDEX safety_observations_pkey ON qralalay.safety_observations USING btree (id)

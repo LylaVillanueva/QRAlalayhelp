@@ -1,0 +1,31 @@
+Project B: qralalay (jmzpqfgbjigbxkuofaae)
+Query mode: Supabase CLI `db query --remote=jmzpqfgbjigbxkuofaae --read-only`
+Target label returned by CLI: production
+
+The catalog contains six configured global default ACL rows: TABLES, SEQUENCES,
+and FUNCTIONS for owners `postgres` and `supabase_admin`, all in global scope.
+There are no configured schema-specific default ACL rows for `qralalay` (or
+`public`). The exact configured rows and expanded grants are in
+`12_default_privileges.csv`.
+
+For objects created by `postgres`, global default ACLs grant anon and
+authenticated broad table privileges and sequence privileges, plus function
+EXECUTE. The scoped REVOKE statements in the foundation migration do not
+override these global grants: PostgreSQL adds per-schema defaults to global
+defaults, and a per-schema REVOKE cannot remove a globally granted privilege.
+Therefore future objects created by `postgres` in `qralalay` inherit those
+client grants unless global defaults or object ownership/defaults change.
+
+Result: default-privilege equivalence and the foundation's intended
+least-privilege default behavior are NOT verified as passing. This is a
+deployment blocker requiring a reviewed forward migration strategy. No
+database was modified and no migration-history repair was run.
+
+## Role capability follow-up (read-only, 2026-11-25)
+
+The Project B role catalog reports `postgres` can log in, can create roles, and
+is not a superuser. `supabase_admin` can log in and is a superuser. The direct
+membership check `pg_has_role('postgres','supabase_admin','MEMBER')` is false;
+the available `postgres` role cannot alter `supabase_admin`'s default ACLs.
+Remediation for that owner requires a DBA/Supabase-owner administrative path.
+No role or ACL change was attempted.

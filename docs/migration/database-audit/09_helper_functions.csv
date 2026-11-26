@@ -1,0 +1,21 @@
+function_schema,proname,arguments,security_definer,function_settings,definition
+public,get_my_profile,,true,"[""search_path=\""\""""]","CREATE OR REPLACE FUNCTION public.get_my_profile()
+ RETURNS TABLE(profile_id uuid, barangay_id uuid, full_name text, role text, is_active boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+    SELECT
+        p.id,
+        p.barangay_id,
+        p.full_name,
+        p.role,
+        p.is_active
+    FROM qralalay.profiles p
+    JOIN qralalay.barangays b
+        ON b.id = p.barangay_id
+    WHERE p.auth_user_id = auth.uid()
+      AND p.is_active = true
+      AND b.is_active = true;
+$function$
+"

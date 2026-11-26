@@ -1,0 +1,4 @@
+role_name,can_use_schema,can_create_objects
+anon,false,false
+authenticated,false,false
+service_role,true,false

@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- Supabase Auth → Email Templates → "Invite user".
+     Subject: You're invited to QRAlalay
+     {{ .ConfirmationURL }} confirms the email address. The account still needs
+     a barangay official to activate it; guardian access also needs a verified
+     relationship. The email says so instead of promising immediate access. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>You're invited to QRAlalay</title>
+</head>
+<body style="margin:0;padding:0;background:#FAF6EF;">
+<div style="display:none;max-height:0;overflow:hidden;">Your barangay invited you to QRAlalay. Confirm your email to get started.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF6EF;">
+<tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border:1px solid #DCE5EA;border-radius:24px;overflow:hidden;font-family:Poppins,Arial,Helvetica,sans-serif;">
+    <tr><td style="background:#087DB8;padding:24px 28px 30px;border-bottom-left-radius:40% 18px;border-bottom-right-radius:40% 18px;">
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+        <td style="vertical-align:middle;"><img src="https://www.qralalay.app/branding/qralalay-logo.png" width="52" height="52" alt="QRAlalay logo" style="display:block;border:0;border-radius:12px;background:#FFFFFF;"></td>
+        <td style="vertical-align:middle;padding-left:12px;color:#FFFFFF;font-size:22px;font-weight:700;">QRAlalay</td>
+      </tr></table>
+      <p style="margin:16px 0 0;color:#FFFFFF;font-size:15px;">Teknolohiya na may malasakit.</p>
+    </td></tr>
+
+    <tr><td style="padding:28px;color:#103B66;">
+      <h1 style="margin:0 0 12px;font-size:24px;line-height:1.3;color:#103B66;">You're invited to QRAlalay</h1>
+      <p style="margin:0 0 22px;font-size:17px;line-height:1.6;color:#103B66;">Your barangay created a QRAlalay account for you, to help coordinate community assistance for residents. Confirm your email address to continue.</p>
+
+      <!-- Bulletproof button -->
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+        <tr><td align="center" bgcolor="#056BA3" style="border-radius:16px;">
+          <a href="{{ .ConfirmationURL }}" style="display:block;padding:18px 24px;font-size:18px;font-weight:700;color:#FFFFFF;text-decoration:none;border-radius:16px;font-family:Poppins,Arial,Helvetica,sans-serif;">Confirm my email</a>
+        </td></tr>
+      </table>
+
+      <h2 style="margin:26px 0 10px;font-size:18px;color:#103B66;">What happens next</h2>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:16px;line-height:1.55;color:#103B66;">
+        <tr>
+          <td width="40" valign="top"><div style="width:30px;height:30px;line-height:30px;text-align:center;border-radius:15px;background:#FCE4E2;border:2px solid #F45C59;font-weight:700;">1</div></td>
+          <td style="padding:4px 0 12px;">Tap <strong>Confirm my email</strong> above.</td>
+        </tr>
+        <tr>
+          <td width="40" valign="top"><div style="width:30px;height:30px;line-height:30px;text-align:center;border-radius:15px;background:#FFF5D9;border:2px solid #FFBE28;font-weight:700;">2</div></td>
+          <td style="padding:4px 0 12px;">A barangay official activates your account. Guardians can see a resident only after the official verifies the relationship.</td>
+        </tr>
+        <tr>
+          <td width="40" valign="top"><div style="width:30px;height:30px;line-height:30px;text-align:center;border-radius:15px;background:#E8F5E1;border:2px solid #79C957;font-weight:700;">3</div></td>
+          <td style="padding:4px 0 12px;">Open the QRAlalay app, enter this email address, and sign in with the 6-digit code we send you. You don't need a password.</td>
+        </tr>
+      </table>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
+        <tr><td style="background:#E7F3FA;border-left:6px solid #056BA3;border-radius:12px;padding:14px 16px;font-size:15px;line-height:1.55;color:#103B66;">
+          Not expecting this? Ignore this email and no account will be activated. If the button doesn't work, copy this link into your browser:<br>
+          <a href="{{ .ConfirmationURL }}" style="color:#056BA3;word-break:break-all;">{{ .ConfirmationURL }}</a>
+        </td></tr>
+      </table>
+
+      <p style="margin:20px 0 0;font-size:15px;line-height:1.6;color:#53616A;" lang="fil">Inanyayahan ka ng iyong barangay sa QRAlalay. Pindutin ang "Confirm my email". Isasaaktibo ng opisyal ng barangay ang iyong account bago ka makapag-sign in.</p>
+    </td></tr>
+
+    <tr><td style="background:#103B66;padding:20px 28px;color:#FFFFFF;font-size:13px;line-height:1.6;text-align:center;">
+      Community care, within reach.<br>
+      QRAlalay is a barangay community assistance system. It does not replace 911.
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>

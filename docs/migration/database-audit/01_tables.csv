@@ -1,0 +1,16 @@
+table_name,exists_in_live_database
+assistance_cases,true
+audit_logs,true
+barangay_contacts,true
+barangays,true
+case_assignments,true
+case_events,true
+case_reports,true
+device_tokens,true
+guardian_links,true
+notification_outbox,true
+notifications,true
+profiles,true
+qr_cards,true
+residents,true
+safety_observations,true

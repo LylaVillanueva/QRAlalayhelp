@@ -24,7 +24,7 @@ export default function LoginPortal({ setSession, onBack }) {
 
   // -------------------------------------------------------------------------
   // Normalization — always produce a stable identifier string.
-  // Email: trim + lowercase so "example@example.test " matches "example@example.test".
+  // Email: trim + lowercase so "user@example.test " matches "user@example.test".
   // Phone: strip non-digits, drop a leading 0, then prefix +63.
   // -------------------------------------------------------------------------
   function normalizeIdentifier() {

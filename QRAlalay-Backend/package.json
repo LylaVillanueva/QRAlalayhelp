@@ -1,7 +1,7 @@
 {
-  "name": "resqr-backend",
+  "name": "qralalay-backend",
   "version": "1.0.0",
-  "description": "ResQR backend API - Node.js/TypeScript/Express + Supabase (PostgreSQL)",
+  "description": "QRAlalay backend with Supabase as the active service and Express retained for rollback",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
