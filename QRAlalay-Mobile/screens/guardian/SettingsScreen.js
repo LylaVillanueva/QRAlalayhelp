@@ -1,0 +1,115 @@
+import { typography, spacing, colors, font, radius } from '../../constants/theme';
+import { changePhoto } from '../../utils/photos';
+import Avatar from "../../components/Avatar";
+import { useAppData } from "../../contexts/AppDataContext";
+import React, { useState, useMemo } from 'react';
+import { View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import Text from "../../components/AppText";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { FontAwesome5 } from '@expo/vector-icons';
+import TabBar from "../../components/tabs/GuardianTabButtons";
+import InfoModal from "../../components/modals/InfoModal";
+import useNotificationPrefs from "../../hooks/useNotificationPrefs";
+import { Section, Divider, ToggleRow, LinkRow, InfoRow } from "../../components/ui";
+import { useAccessibilitySettings, FONT_SCALES, FONT_FAMILIES, LANGUAGES } from "../../contexts/AccessibilitySettingsContext";
+
+export default function SettingsScreen({ navigation, setSession }) {
+  const { users, residents, account, myPhotoUrl, setAccountPhoto } = useAppData();
+  const changeMyPhoto = () => changePhoto({ title: 'Your photo', hasPhoto: !!myPhotoUrl, save: (image) => setAccountPhoto(account.id, image) });
+  const { prefs, set, setPushEnabled, pushSupported } = useNotificationPrefs();
+  const { fontScaleKey, fontFamilyKey, languageKey, t } = useAccessibilitySettings();
+
+  const guardianAccount = useMemo(() => users.find((user) => user.id === account.id), [users, account.id]);
+  const wardIds = guardianAccount?.wardIds || [];
+  const wards = residents.filter((r) => wardIds.includes(r.id));
+  const relationship = wards[0]?.relationship || guardianAccount?.relationship || 'Guardian';
+  const phone = guardianAccount?.phone || wards[0]?.guardianContact || 'Not available';
+
+  const [infoModal, setInfoModal] = useState(null); // { title, message }
+  const info = (title, message) => setInfoModal({ title, message });
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.heading}>Settings</Text>
+        <View style={styles.divider} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={[styles.residentCard, styles.shadow]}>
+          <Avatar uri={myPhotoUrl} name={account.fullName} style={styles.residentPhoto} onChangePress={changeMyPhoto} />
+          <View style={{ flex: 1, margin: 0 }}>
+            <Text style={styles.contextTitle}>{account.fullName}</Text>
+            <Text style={styles.small}>Guardian • {account.barangayName}</Text>
+          </View>
+        </View>
+
+        <Section compact title={t('accountInformation')} titleStyle={{ marginTop: 10 }}>
+          <InfoRow compact label={t('name')} value={account.fullName} />
+          <Divider />
+          <InfoRow compact label={t('Mobile Number')} value={phone} />
+          <Divider />
+          <InfoRow compact label={t('barangay')} value={account.barangayName} />
+          <Divider />
+          <InfoRow compact label="Linked residents" value={`${wards.length}`} />
+        </Section>
+
+        {pushSupported && <Section compact title={t('notifications')}>
+          <ToggleRow compact label={t('pushNotifications')} value={prefs.pushEnabled} onChange={setPushEnabled} />
+        </Section>}
+
+        <Section compact title={t('accessibility')}>
+          <LinkRow compact icon="language" label={t('language')} value={LANGUAGES.find((l) => l.key === languageKey)?.label} onPress={() => navigation.navigate('AccessibilityOptions', { type: 'language' })} />
+          <Divider />
+          <LinkRow compact icon="font" label={t('font')} value={FONT_FAMILIES.find((f) => f.key === fontFamilyKey)?.label} onPress={() => navigation.navigate('AccessibilityOptions', { type: 'fontFamily' })} />
+          <Divider />
+          <LinkRow compact icon="text-height" label={t('fontSize')} value={FONT_SCALES.find((s) => s.key === fontScaleKey)?.label} onPress={() => navigation.navigate('AccessibilityOptions', { type: 'fontSize' })} />
+        </Section>
+
+        <Section compact title={t('helpSupport')}>
+          <LinkRow compact icon="phone" label={t('barangayContactNumber')} onPress={() => navigation.navigate('EmergencyHelp')} />
+        </Section>
+
+        <Section compact title={t('about')}>
+          <LinkRow compact icon="check-circle" label={t('appVersion')} value="1.0" />
+          <Divider />
+          <LinkRow compact icon="info-circle" label={t('aboutQrAlalay')} onPress={() => navigation.navigate('Legal', { type: 'about' })} />
+          <Divider />
+          <LinkRow compact icon="file-contract" label={t('termsOfService')} onPress={() => navigation.navigate('Legal', { type: 'terms' })} />
+          <Divider />
+          <LinkRow compact icon="user-shield" label={t('privacyPolicy')} onPress={() => navigation.navigate('Legal', { type: 'privacy' })} />
+        </Section>
+
+        <TouchableOpacity
+          style={styles.logout}
+          onPress={() => Alert.alert('Log Out?', 'Are you sure you want to log out?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Log Out', style: 'destructive', onPress: () => setSession?.(null) }])}
+          accessibilityRole="button"
+          accessibilityLabel="Log out"
+        >
+          <FontAwesome5 name="sign-out-alt" size={16} color={colors.primary} style={{ marginTop: -2 }} />
+          <Text style={styles.logoutText}>{t('logOut')}</Text>
+        </TouchableOpacity>
+      </ScrollView>
+      <InfoModal visible={!!infoModal} title={infoModal?.title} message={infoModal?.message} onClose={() => setInfoModal(null)} />
+      <TabBar />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surface },
+  content: { padding: spacing.screen, paddingTop: 8, paddingBottom: 0 },
+  scrollContent: { padding: spacing.screen, paddingTop: 0, paddingBottom: 30 },
+  profileBar: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, marginTop: 10 },
+  photo: { width: 52, height: 52, borderRadius: 26, borderWidth: 1.8, borderColor: colors.primary, backgroundColor: colors.border, marginRight: 13 },
+  name: { fontSize: typography.body, fontFamily: font.semibold },
+  meta: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: font.regular, marginTop: 2 },
+  heading: { fontSize: typography.title, fontFamily: font.semibold, marginBottom: 4 },
+  divider: { borderTopWidth: 1, borderTopColor: colors.border },
+  residentCard: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.primary, borderRadius: 12, backgroundColor: colors.primarySoft, padding: spacing.card, marginBottom: 16, marginTop: 16 },
+  residentPhoto: { width: 85, height: 100, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.border, marginRight: 11 },
+  small: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', marginTop: 2 },
+  contextTitle: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold' },
+  logout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.dangerSurface, borderRadius: radius.md, paddingVertical: 13, marginTop: 22 },
+  logoutText: { color: colors.primary, fontFamily: font.semibold, marginLeft: 7 },
+});
