@@ -17,6 +17,10 @@
 **/.gradle/
 **/.idea/
 **/.DS_Store
+**/db-backups/
+**/backups/
+**/supabase/.temp/
+**/supabase/functions/.env
 *.log
 
 # Signing material, local databases and backups
