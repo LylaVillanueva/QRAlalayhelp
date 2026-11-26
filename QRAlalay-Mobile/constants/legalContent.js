@@ -24,8 +24,8 @@ export const PRIVACY_POLICY = [
       'Residents (entered by barangay staff): full name, birth date, home address, medical notes, and whether the ' +
       'resident is a senior citizen or person with disability — this last category is treated as sensitive personal ' +
       'information under the Data Privacy Act and is only entered by barangay staff, never by the public. Guardian records ' +
-      'also include an emergency contact’s name, relationship, and phone number. When someone scans a resident’s QR code ' +
-      'to raise an alert, we record available device coordinates, any note the scanner adds, the request IP address, and browser or device information.',
+      'also include guardian relationship and contact details. Public scans show only the card status, issuing barangay, and information the barangay has approved for public disclosure, plus confirmed barangay contact numbers. ' +
+      'When someone requests assistance, the request may include a note, landmark, and device location if the scanner chooses to share it. The service also processes technical request data to prevent abuse and keep an audit trail.',
   },
   {
     heading: 'How it’s used',
@@ -37,15 +37,12 @@ export const PRIVACY_POLICY = [
   {
     heading: 'Who we share it with',
     body:
-      'The backend uses a PostgreSQL database configured through Supabase infrastructure. Expo’s push notification service is used to send alerts to registered devices. ' +
-      'The current demonstration login does not send email or SMS codes. Photo upload and QR file export are not implemented. ' +
-      'Opening a map sends the selected coordinates to the external map service. Public QR information is accessible to anyone holding the active QR link.',
+      'The backend uses Supabase authentication, database, private photo storage, and server functions. The current mobile sign-in screen requests an email verification code; delivery depends on the configured Supabase Auth email provider. Phone sign-in is not currently enabled in the mobile interface. Profile photos are stored privately and displayed through time-limited links. The app can register a device for push notifications, but delivery depends on notification configuration, permissions, network access, and the barangay service. QR cards can be issued and securely re-exported when the required backend functions are deployed. Opening a map sends the selected coordinates to the external map service.',
   },
   {
     heading: 'What an anonymous scanner sees',
     body:
-      'The public QR response includes the resident’s first name, medical notes, and emergency contact names, relationships, and phone numbers. ' +
-      'It does not include the home address or full resident record. Medical notes and contact details are sensitive; the public view is limited, not anonymous.',
+      'A public QR response shows whether the card is active, the issuing barangay, confirmed barangay contact numbers, and the resident display name or assistance instructions only when the barangay has approved public disclosure. It does not return the resident’s home address, medical notes, guardian contact details, or full record. Anyone with an active QR card can view this limited response.',
   },
   {
     heading: 'How long we keep it',
@@ -64,8 +61,7 @@ export const PRIVACY_POLICY = [
   {
     heading: 'Security',
     body:
-      'The current prototype uses a fixed demonstration verification code and does not verify ownership of an email or phone number. It is not production authentication. Access to resident data is ' +
-      'restricted by role — officials, guardians, and responders each see only what their role needs.',
+      'The mobile sign-in flow uses Supabase Auth email verification codes and then checks that the account has an active QRAlalay profile. Do not share verification codes. Access to resident data is restricted by account role and barangay authorization; guardian relationships require verification and responders receive scoped case access.',
   },
 ];
 
