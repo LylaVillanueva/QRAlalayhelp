@@ -1,5 +1,5 @@
 import { typography, spacing, colors, font, radius, tracking } from "../../constants/theme";
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform, KeyboardAvoidingView, Image } from 'react-native';
 import { BrandDots } from '../../components/BrandHeader';
 import Text from "../../components/AppText";
@@ -12,10 +12,10 @@ import { useAccessibilitySettings } from "../../contexts/AccessibilitySettingsCo
 // set up, only email sign-in is offered.
 const PHONE_SIGN_IN_ENABLED = false;
 
-export default function LoginPortal({ setSession, onBack }) {
+export default function LoginPortal({ setSession, onBack, initialEmail = '', autoSend = false }) {
   const { t } = useAccessibilitySettings();
   const [method, setMethod] = useState('email'); // 'email' | 'phone'
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState(''); // local digits only, e.g. "9171234567"
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -138,6 +138,13 @@ export default function LoginPortal({ setSession, onBack }) {
     setOtp(['', '', '', '', '', '']);
     preparedOtp.current = false;
   }
+
+  // The welcome screen collects the email; send the code with the same
+  // handleContinue the Continue button uses, once, on arrival.
+  const autoSent = useRef(false);
+  useEffect(() => {
+    if (autoSend && !autoSent.current && initialEmail) { autoSent.current = true; handleContinue(); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const identifier = normalizeIdentifier();
 
