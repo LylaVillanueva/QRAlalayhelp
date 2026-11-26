@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { api } from './api';
-import { getCurrentPosition, watchPosition } from './geolocation';
+import { api } from '../services/api';
+import { getCurrentPosition, watchPosition } from '../services/geolocation';
 
 // How often the latest position is sent while sharing live location.
 const SHARE_INTERVAL_MS = 10000;
 // Continuous live sharing is deferred; the one-time location is still sent
 // with the assistance request. Set to true to show the controls again.
 const LIVE_LOCATION_SHARING_ENABLED = false;
-import PageLayout from './PageLayout.jsx';
+import PageLayout from '../components/PageLayout.jsx';
 
 export default function ScanPage({ token }) {
   // `phase` tells the page which part of the scan flow it should display.

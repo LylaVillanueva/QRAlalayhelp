@@ -1,5 +1,5 @@
-import ScanPage from './ScanPage.jsx';
-import PageLayout from './PageLayout.jsx';
+import ScanPage from './pages/ScanPage.jsx';
+import PageLayout from './components/PageLayout.jsx';
 
 // QR tokens are 24 random bytes in base64url (32 characters). Anything that
 // doesn't look like one is rejected here, without calling the server.

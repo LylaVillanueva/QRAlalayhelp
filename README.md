@@ -97,23 +97,23 @@ Security headers are also set in `vercel.json`; see `SECURITY.md`.
 2. `src/main.jsx` starts React and loads the app's CSS.
 3. `src/App.jsx` checks the browser's current URL. `/scan/<token>` opens the
    emergency screen; any other URL shows a short notice with a 911 button.
-4. `src/ScanPage.jsx` asks the backend for the QR code's public resident
+4. `src/pages/ScanPage.jsx` asks the backend for the QR code's public resident
    information: first name, barangay and medical notes.
-5. When the bystander raises an alert, `src/geolocation.js` tries to get the
+5. When the bystander raises an alert, `src/services/geolocation.js` tries to get the
    device's location. Location is optional: denying permission does not stop
    the alert.
-6. `src/api.js` sends the scan and any optional note/location to the backend.
+6. `src/services/api.js` sends the scan and any optional note/location to the backend.
    The screen then shows the result, offers a direct phone call, and displays a
    short cancellation option if the backend returned a cancellation token.
 
 ## Folder guide
 
 - `src/App.jsx` — chooses which screen to show from the URL.
-- `src/PageLayout.jsx` — the logo and divider shared by every screen.
-- `src/ScanPage.jsx` — public resident details, alert submission, result, and
+- `src/components/PageLayout.jsx` — the logo and divider shared by every screen.
+- `src/pages/ScanPage.jsx` — public resident details, alert submission, result, and
   cancellation screens.
-- `src/api.js` — backend HTTP requests and error handling.
-- `src/geolocation.js` — best-effort browser location lookup.
+- `src/services/api.js` — backend HTTP requests and error handling.
+- `src/services/geolocation.js` — best-effort browser location lookup.
 - `src/index.css` — page layout, colors, buttons, and form styles.
 - `src/main.jsx` — starts the React app.
 - `index.html` — the browser page that loads the React app.

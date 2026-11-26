@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { webcrypto } = require('node:crypto');
 
-const source = fs.readFileSync(path.join(__dirname, 'src/api.js'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '../src/services/api.js'), 'utf8');
 let instance = 0;
 
 async function withApi(responses, run, { initialStorage = new Map(), configured = true } = {}) {

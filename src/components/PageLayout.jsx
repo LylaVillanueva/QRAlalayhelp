@@ -1,4 +1,4 @@
-import logo from './assets/logo.png';
+import logo from '../assets/logo.png';
 
 // Shared frame: logo, divider, content. The logo isn't a link, so a tap in a
 // hurry can't navigate away from a resident's emergency page.
