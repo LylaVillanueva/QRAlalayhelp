@@ -1,0 +1,3 @@
+# Emergency pages are private; nothing here should be indexed.
+User-agent: *
+Disallow: /

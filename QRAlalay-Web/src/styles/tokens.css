@@ -1,0 +1,72 @@
+/*
+ * QRAlalay Digital Bayanihan design tokens. Every colour, size and radius on
+ * the site comes from here. Do not hard-code colours in components.
+ */
+:root {
+  /* Brand identity (from the original logo) */
+  --brand-primary: #087DB8;   /* Bayanihan Blue */
+  --brand-navy: #103B66;
+  --brand-red: #F45C59;
+  --brand-yellow: #FFBE28;
+  --brand-green: #79C957;
+  --background: #FAF6EF;      /* warm paper */
+  --surface: #FFFFFF;
+
+  /* Accessible functional colours (text and controls) */
+  --action-primary: #056BA3;
+  --action-primary-dark: #045580;
+  --text-primary: #103B66;
+  --text-secondary: #53616A;
+  --border: #DCE5EA;
+  --info-surface: #E7F3FA;
+  --danger: #A83232;
+  --danger-dark: #8A2828;
+  --danger-surface: #FCE4E2;
+  --warning: #826000;
+  --warning-surface: #FFF5D9;
+  --success: #286C35;
+  --success-surface: #E8F5E1;
+  --on-action: #FFFFFF;
+  --focus-ring: #FFBE28;
+  --focus-ring-inner: #103B66;
+
+  /* Illustration-only colours (never used for text) */
+  --illustration-skin-a: #C98B5E;
+  --illustration-skin-b: #8E5B3D;
+  --illustration-hair-grey: #D9D4CC;
+  --illustration-hair-dark: #2C2A33;
+  --illustration-ground: #E3EFD6;
+  --illustration-wall: #FFFFFF;
+
+  /* Typography: Poppins ships with the site; system fonts are the fallback. */
+  --font-family: Poppins, system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --text-body: 1.0625rem;      /* 17px */
+  --text-small: 0.9375rem;     /* 15px, used sparingly */
+  --text-lead: 1.1875rem;      /* 19px */
+  --text-h2: 1.375rem;         /* 22px */
+  --text-h1: clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem);
+  --text-display: clamp(2rem, 1.5rem + 2.6vw, 2.875rem);
+  --line-body: 1.6;
+  --line-heading: 1.25;
+
+  /* Space and shape */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  --content-width: 40rem;      /* ~640px reading column */
+  --wide-width: 64rem;
+
+  /* Touch targets */
+  --target-min: 48px;
+  --button-height: 58px;
+
+  --shadow-card: 0 1px 2px rgb(16 59 102 / 6%), 0 4px 16px rgb(16 59 102 / 6%);
+}
