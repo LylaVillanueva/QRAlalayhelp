@@ -32,12 +32,15 @@ values
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub','91100000-0000-4000-8000-000000000002',true);
-select ok(qralalay.can_view_resident('94100000-0000-4000-8000-000000000001'),
-  'assigned responder can view the resident profile needed for their case');
-select ok(qralalay.can_view_case('96100000-0000-4000-8000-000000000001'),
-  'responder can view a case assigned to their profile');
-select ok(not qralalay.can_view_case('96100000-0000-4000-8000-000000000002'),
-  'responder cannot view a different responder case for the same resident');
+select is((select count(*)::int from public.list_accessible_residents_with_photos()
+  where resident_id='94100000-0000-4000-8000-000000000001'),1,
+  'assigned responder can see the resident through the permitted listing RPC');
+select is((select case_id from public.get_assistance_case('96100000-0000-4000-8000-000000000001')),
+  '96100000-0000-4000-8000-000000000001'::uuid,
+  'responder can retrieve a case assigned to their profile through the public RPC');
+select throws_ok($test$select * from public.get_assistance_case('96100000-0000-4000-8000-000000000002')$test$,
+  '42501','Not authorized for this case',
+  'responder cannot retrieve another responder case for the same resident');
 select is((select count(*)::int from public.list_resident_case_history('94100000-0000-4000-8000-000000000001')),1,
   'responder history returns only their assigned case');
 select is((select case_id from public.list_resident_case_history('94100000-0000-4000-8000-000000000001')),
