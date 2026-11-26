@@ -72,6 +72,23 @@ export default function UserDetails({ route, navigation }) {
     await run(async () => { await changeUserRole(user.id, draft.role, draft.position, reason); setRolePrompt(false); setChangingRole(false); });
   }
 
+  async function resendGuardianInvitation() {
+    await run(async () => {
+      const result = await api.resendGuardianInvitation(user.id);
+      Alert.alert(result.authAccepted ? 'Resend request accepted' : 'Invitation status needs review', result.authAccepted
+        ? 'Supabase accepted the resend request. Email delivery is not confirmed. The guardian must confirm their email, and an official must activate the account.'
+        : 'Supabase did not confirm that it accepted the resend request. Check Auth and email-provider logs before trying again.');
+    });
+  }
+
+  const guardianAccountStatus = user.role === 'Guardian'
+    ? !emailStatus ? 'Status unavailable'
+      : !emailStatus.hasAuthUser ? 'Invitation needs attention'
+      : !emailStatus.emailConfirmed ? 'Awaiting email confirmation'
+      : user.status !== 'Active' ? 'Awaiting account activation'
+      : 'Active guardian'
+    : null;
+
   function toggleStatus() {
     if (user.status === 'Active') {
       Alert.alert('Deactivate account', `Deactivate ${user.name}'s account? They will no longer be able to sign in.`, [
@@ -81,9 +98,9 @@ export default function UserDetails({ route, navigation }) {
     } else if (emailStatus && !emailStatus.hasAuthUser) {
       Alert.alert('Invitation needs attention', 'No Supabase Auth account is linked to this profile yet. Check the invitation status and email delivery before activating it. Do not create a second account for the same email.');
     } else if (emailStatus && !emailStatus.emailConfirmed) {
-      Alert.alert('Email not confirmed', `${user.name} hasn't opened the invitation email yet. Ask them to open the link in the email, then activate the account.`);
+      Alert.alert('Email not confirmed', `${user.name}'s email address has not been confirmed. Ask them to find and open the invitation link, then activate the account.`);
     } else {
-      Alert.alert('Activate account', `Activate ${user.name}'s account so they can sign in? This does not verify any guardian relationship; verify relationships from the resident's information.`, [
+      Alert.alert('Activate account', `Activate ${user.name}'s account so they can sign in? Guardian relationships are reviewed from resident information.`, [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Activate', onPress: () => run(() => activateUser(user.id)) },
       ]);
@@ -110,14 +127,19 @@ export default function UserDetails({ route, navigation }) {
           <View style={[styles.statusPill, user.status === 'Active' ? styles.active : styles.inactive]}>
             <Text style={[styles.statusText, user.status === 'Active' ? styles.activeText : styles.inactiveText]}>{user.status}</Text>
           </View>
-          {emailStatus && !emailStatus.hasAuthUser && (
+          {emailStatus && !emailStatus.hasAuthUser && user.role !== 'Guardian' && (
             <View style={[styles.statusPill, styles.inactive]}>
               <Text style={[styles.statusText, styles.inactiveText]}>Auth account not linked</Text>
             </View>
           )}
-          {emailStatus?.hasAuthUser && (
+          {emailStatus?.hasAuthUser && user.role !== 'Guardian' && (
             <View style={[styles.statusPill, emailStatus.emailConfirmed ? styles.active : styles.inactive]}>
               <Text style={[styles.statusText, emailStatus.emailConfirmed ? styles.activeText : styles.inactiveText]}>{emailStatus.emailConfirmed ? 'Email confirmed' : 'Email not confirmed'}</Text>
+            </View>
+          )}
+          {guardianAccountStatus && (
+            <View style={[styles.statusPill, guardianAccountStatus === 'Active guardian' ? styles.active : styles.inactive]}>
+              <Text style={[styles.statusText, guardianAccountStatus === 'Active guardian' ? styles.activeText : styles.inactiveText]}>{guardianAccountStatus}</Text>
             </View>
           )}
         </View>
@@ -213,6 +235,12 @@ export default function UserDetails({ route, navigation }) {
               <FontAwesome5 name="user-lock" size={14} color={colors.primary} style={{ marginTop: -4 }} />
               <Text style={styles.dangerText}> {user.status === 'Active' ? 'Deactivate Account' : 'Activate Account'}</Text>
             </TouchableOpacity>
+            {user.role === 'Guardian' && user.status !== 'Active' && emailStatus?.hasAuthUser && !emailStatus.emailConfirmed && (user.wardIds || []).length > 0 && (
+              <TouchableOpacity style={styles.actionButton} onPress={resendGuardianInvitation} disabled={saving}>
+                <FontAwesome5 name="envelope" size={14} color={colors.primary} />
+                <Text style={styles.actionText}>{saving ? ' Please wait…' : ' Resend Invitation'}</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
       </ScrollView>

@@ -265,50 +265,55 @@ test('responder decline uses the same assignment ID and preserves its required r
     && item.args.p_reason === 'Cannot reach the location'));
 });
 
-test('a pending guardian link is returned instead of attempting a duplicate insert', async () => {
+test('guardian linking records approval in one audited backend action', async () => {
   const mock = fixture();
-  mock.supabase.rpc = async (name, args) => {
-    mock.calls.push({ rpc: name, args });
-    if (name === 'list_resident_guardian_links') return { data: [{ link_id: 'link-pending', guardian_profile_id: 'guardian-1', guardian_name: 'Guardian Example', status: 'pending', relationship: 'Parent' }], error: null };
-    return { data: null, error: null };
-  };
+  mock.supabase.rpc = async (name, args) => { mock.calls.push({ rpc: name, args }); return { data: 'link-1', error: null }; };
   const { supabaseApi } = await loadSupabaseApi(mock);
-  assert.deepEqual(await supabaseApi.linkGuardianToResident({ residentId: 'resident-1', guardianId: 'guardian-1', relationship: 'Parent' }), {
-    linkId: 'link-pending', status: 'pending', existing: true,
-  });
-  assert.equal(mock.calls.some((call) => call.rpc === 'create_guardian_link'), false);
+  assert.deepEqual(await supabaseApi.linkGuardianToResident({ residentId: 'resident-1', guardianId: 'guardian-1', relationship: 'Parent' }), { linkId: 'link-1', status: 'verified' });
+  assert.deepEqual(mock.calls[0], { rpc: 'approve_guardian_relationship', args: {
+    p_resident_id: 'resident-1', p_guardian_profile_id: 'guardian-1', p_relationship: 'Parent', p_context: 'linking',
+  } });
+  assert.equal(mock.calls.some((call) => call.rpc === 'create_guardian_link' || call.rpc === 'review_guardian_link'), false);
 });
 
-test('an already verified guardian relationship is preserved without a duplicate insert', async () => {
+test('historical pending guardian relationships are approved in place for review', async () => {
   const mock = fixture();
-  mock.supabase.rpc = async (name, args) => {
-    mock.calls.push({ rpc: name, args });
-    if (name === 'list_resident_guardian_links') return { data: [{ link_id: 'link-verified', guardian_profile_id: 'guardian-1', guardian_name: 'Guardian Example', status: 'verified', relationship: 'Parent' }], error: null };
-    return { data: null, error: null };
-  };
+  mock.supabase.rpc = async (name, args) => { mock.calls.push({ rpc: name, args }); return { data: 'existing-link', error: null }; };
   const { supabaseApi } = await loadSupabaseApi(mock);
-  assert.deepEqual(await supabaseApi.linkGuardianToResident({ residentId: 'resident-1', guardianId: 'guardian-1', relationship: 'Parent' }), {
-    linkId: 'link-verified', status: 'verified', existing: true,
-  });
-  assert.equal(mock.calls.some((call) => call.rpc === 'create_guardian_link'), false);
+  await supabaseApi.approveGuardianRelationship({ residentId: 'resident-1', guardianId: 'guardian-1', relationship: 'Parent', context: 'pending_review' });
+  assert.equal(mock.calls[0].rpc, 'approve_guardian_relationship');
+  assert.equal(mock.calls[0].args.p_context, 'pending_review');
 });
 
-test('a duplicate-link race rereads the pending relationship and returns a reviewable ID', async () => {
+test('unlinking retains the backend reason audit action', async () => {
   const mock = fixture();
-  let listCount = 0;
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await supabaseApi.unlinkGuardianRelationship('link-1', 'Resident has a new authorized guardian');
+  assert.deepEqual(mock.calls.find((call) => call.rpc === 'review_guardian_link').args, {
+    p_link_id: 'link-1', p_decision: 'revoked', p_reason: 'Resident has a new authorized guardian',
+  });
+});
+
+test('guardian resend targets the existing profile through the authorized Edge Function', async () => {
+  const mock = fixture();
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  mock.supabase.functions.invoke = async (name, options) => { mock.calls.push({ name, options }); return { data: { data: { resent: true } }, error: null }; };
+  assert.deepEqual(await supabaseApi.resendGuardianInvitation('guardian-1'), { authAccepted: true });
+  assert.deepEqual(mock.calls[0], { name: 'resend-guardian-invitation', options: { body: { profileId: 'guardian-1' } } });
+});
+
+test('guardian relationship idempotency and link races are delegated to the backend approval transaction', async () => {
+  const mock = fixture();
   mock.supabase.rpc = async (name, args) => {
     mock.calls.push({ rpc: name, args });
-    if (name === 'list_resident_guardian_links') {
-      listCount += 1;
-      return { data: listCount === 1 ? [] : [{ link_id: 'link-race', guardian_profile_id: 'guardian-1', guardian_name: 'Guardian Example', status: 'pending', relationship: 'Parent' }], error: null };
-    }
-    if (name === 'create_guardian_link') return { data: null, error: { code: '23505', message: 'duplicate key violates unique constraint "one_currentguardian_link"' } };
-    return { data: null, error: null };
+    return { data: 'link-race', error: null };
   };
   const { supabaseApi } = await loadSupabaseApi(mock);
-  assert.deepEqual(await supabaseApi.linkGuardianToResident({ residentId: 'resident-1', guardianId: 'guardian-1', relationship: 'Parent' }), {
-    linkId: 'link-race', status: 'pending', existing: true,
-  });
+  const result = await supabaseApi.linkGuardianToResident({ residentId: 'resident-1', guardianId: 'guardian-1', relationship: 'Parent' });
+  assert.equal(result.linkId, 'link-race');
+  assert.equal(result.status, 'verified');
+  assert.equal(mock.calls.filter((call) => call.rpc === 'approve_guardian_relationship').length, 1);
+  assert.equal(mock.calls.some((call) => call.rpc === 'create_guardian_link'), false);
 });
 
 test('profile photo uses Expo cryptographic UUIDs and the private upload/path RPC flow', async () => {
@@ -345,48 +350,70 @@ test('a declined assignment can be assigned again without a reason', async () =>
   assert.ok(mock.calls.some((item) => item.rpc === 'assign_responder'));
 });
 
-test('a new guardian is invited and linked as pending; nothing is verified automatically', async () => {
+test('new guardian registration records approved relationship and sends an invitation request', async () => {
   const mock = fixture();
   const rpc = mock.supabase.rpc;
   mock.supabase.rpc = async (name, args) => {
     if (name === 'create_resident_with_birth_date') { mock.calls.push({ rpc: name, args }); return { data: 'res-1', error: null }; }
-    if (name === 'create_guardian_link') { mock.calls.push({ rpc: name, args }); return { data: 'link-1', error: null }; }
     return rpc(name, args);
   };
   const { supabaseApi } = await loadSupabaseApi(mock);
-  await supabaseApi.enrollResident({
-    fullName: 'Fictional Resident', residentType: 'Senior Citizen', guardianVerifiedByOfficial: true,
+  const resident = await supabaseApi.enrollResident({
+    fullName: 'Fictional Resident', residentType: 'Senior Citizen', relationshipApproved: true,
     newGuardian: { fullName: 'Fictional Guardian', email: 'guardian@example.test', relation: 'Child' },
   });
   const invite = mock.calls.find((item) => item.name === 'invite-account');
-  assert.equal('wardIds' in invite.options.body, false);
-  const link = mock.calls.find((item) => item.rpc === 'create_guardian_link');
-  assert.deepEqual(link.args, { p_resident_id: 'res-1', p_guardian_profile_id: 'profile-123', p_relationship: 'Child' });
-  assert.equal(mock.calls.some((item) => item.rpc === 'review_guardian_link'), false);
+  assert.deepEqual(invite.options.body, {
+    email: 'guardian@example.test', fullName: 'Fictional Guardian', phone: null, role: 'guardian',
+    wardIds: ['res-1'], relationship: 'Child', relationshipApproved: true,
+  });
+  assert.equal(resident.guardianRelationshipStatus, 'verified');
+  assert.equal(resident.guardianInvitationStatus, 'auth_accepted');
+  assert.equal(mock.calls.some((item) => item.rpc === 'create_guardian_link' || item.rpc === 'review_guardian_link'), false);
 });
 
-test('an existing guardian is linked as pending; nothing is verified automatically', async () => {
+test('existing guardian registration uses the approval RPC at registration time', async () => {
   const mock = fixture();
   const rpc = mock.supabase.rpc;
   mock.supabase.rpc = async (name, args) => {
     if (name === 'create_resident_with_birth_date') return { data: 'res-2', error: null };
-    if (name === 'create_guardian_link') { mock.calls.push({ rpc: name, args }); return { data: 'link-2', error: null }; }
+    if (name === 'approve_guardian_relationship') { mock.calls.push({ rpc: name, args }); return { data: 'link-2', error: null }; }
     return rpc(name, args);
   };
   const { supabaseApi } = await loadSupabaseApi(mock);
-  await supabaseApi.enrollResident({ fullName: 'Fictional Resident', guardianId: 'guardian-9', relationship: 'Spouse', guardianVerifiedByOfficial: true });
-  assert.ok(mock.calls.some((item) => item.rpc === 'create_guardian_link'));
-  assert.equal(mock.calls.some((item) => item.rpc === 'review_guardian_link'), false);
+  await supabaseApi.enrollResident({ fullName: 'Fictional Resident', guardianId: 'guardian-9', guardianName: 'Fictional Guardian', relationship: 'Spouse', relationshipApproved: true });
+  assert.deepEqual(mock.calls.find((item) => item.rpc === 'approve_guardian_relationship').args, {
+    p_resident_id: 'res-2', p_guardian_profile_id: 'guardian-9', p_relationship: 'Spouse', p_context: 'registration',
+  });
 });
 
-test('verifying a guardian relationship requires the official\'s own reason', async () => {
+test('registration does not create a guardian link without official approval', async () => {
   const mock = fixture();
   const { supabaseApi } = await loadSupabaseApi(mock);
-  await assert.rejects(() => supabaseApi.verifyGuardianLink('link-1', '  '), /Record how/);
-  assert.equal(mock.calls.some((item) => item.rpc === 'review_guardian_link'), false);
-  await supabaseApi.verifyGuardianLink('link-1', '  Checked barangay ID in person ');
-  const call = mock.calls.find((item) => item.rpc === 'review_guardian_link');
-  assert.deepEqual(call.args, { p_link_id: 'link-1', p_decision: 'verified', p_reason: 'Checked barangay ID in person' });
+  await assert.rejects(
+    () => supabaseApi.enrollResident({ fullName: 'Fictional Resident', guardianId: 'guardian-1', relationship: 'Parent', relationshipApproved: false }),
+    (error) => error.residentId === true && /Confirm the guardian relationship/.test(error.message),
+  );
+  assert.equal(mock.calls.some((item) => item.rpc === 'create_guardian_link'), false);
+});
+
+test('guardian screens use one explicit approval action and show honest account states', () => {
+  const enrollmentScreen = fs.readFileSync(path.join(__dirname, '../screens/official/EnrollNewResident.js'), 'utf8');
+  const residentProfile = fs.readFileSync(path.join(__dirname, '../screens/official/ProfileScreen.js'), 'utf8');
+  const guardianAccount = fs.readFileSync(path.join(__dirname, '../screens/official/UserDetails.js'), 'utf8');
+  const approvalLabel = "I confirm that this person is authorized to act as the resident's guardian.";
+  assert.ok(enrollmentScreen.includes(approvalLabel));
+  assert.ok(residentProfile.includes(approvalLabel));
+  assert.ok(residentProfile.includes('Review & confirm'));
+  assert.ok(residentProfile.includes('Guardian Linked'));
+  assert.ok(residentProfile.includes('Awaiting email confirmation'));
+  assert.ok(residentProfile.includes('Awaiting account activation'));
+  assert.ok(guardianAccount.includes('Resend Invitation'));
+  for (const screen of [enrollmentScreen, residentProfile]) {
+    assert.equal(screen.includes('Verify Relationship'), false);
+    assert.equal(screen.includes('confirmVerify'), false);
+    assert.equal(screen.includes('verifyTarget'), false);
+  }
 });
 
 function exportFixture(status, body) {

@@ -89,7 +89,9 @@ export default function EnrollNewResident({ navigation, session }) {
 
   const [guardianMode, setGuardianMode] = useState('');
   const [selectedGuardianId, setSelectedGuardianId] = useState('');
+  const [guardianApprovalConfirmed, setGuardianApprovalConfirmed] = useState(false);
   const [existingGuardians, setExistingGuardians] = useState([]);
+  const [guardianAccountStatuses, setGuardianAccountStatuses] = useState(new Map());
   const [loadingGuardians, setLoadingGuardians] = useState(false);
   const [guardiansError, setGuardiansError] = useState(null);
 
@@ -98,15 +100,30 @@ export default function EnrollNewResident({ navigation, session }) {
     let cancelled = false;
     setLoadingGuardians(true);
     setGuardiansError(null);
-    api.listGuardians()
-      .then((guardians) => { if (!cancelled) setExistingGuardians(guardians.filter((guardian) => guardian.is_active !== false)); })
+    Promise.all([api.listGuardians(), api.listAccountStatus().catch(() => null)])
+      .then(([guardians, statusMap]) => {
+        if (cancelled) return;
+        const statuses = statusMap instanceof Map ? statusMap : new Map();
+        setGuardianAccountStatuses(statuses);
+        setExistingGuardians(guardians.filter((guardian) => statuses.has(guardian.id)
+          ? statuses.get(guardian.id)?.hasAuthUser === true
+          : guardian.is_active !== false));
+      })
       .catch((err) => { if (!cancelled) setGuardiansError(err.message); })
       .finally(() => { if (!cancelled) setLoadingGuardians(false); });
     return () => { cancelled = true; };
   }, [guardianMode]);
 
-  function resetGuardianStep() { setGuardianMode(''); setSelectedGuardianId(''); }
-  function updateField(key, value) { setForm((prev) => ({ ...prev, [key]: value })); }
+  function resetGuardianStep() { setGuardianMode(''); setSelectedGuardianId(''); setGuardianApprovalConfirmed(false); }
+  function chooseGuardianMode(mode) {
+    setGuardianMode(mode);
+    setGuardianApprovalConfirmed(false);
+    if (mode !== 'existing') setSelectedGuardianId('');
+  }
+  function updateField(key, value) {
+    if (['relationship', 'guardianName', 'guardianEmail'].includes(key)) setGuardianApprovalConfirmed(false);
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
 
   function handleNext() {
     if (!form.firstName || !form.lastName || !form.birthdate || !form.barangay || !form.role) {
@@ -136,13 +153,16 @@ export default function EnrollNewResident({ navigation, session }) {
       Alert.alert('Existing guardian', 'Select a guardian and their relationship to the resident.'); return;
     }
     if (guardianMode === 'new' && (!form.guardianName.trim() || !form.relationship || !form.guardianEmail)) {
-      Alert.alert('New guardian', 'Enter the guardian name, relationship and email address. The invitation is sent by email.'); return;
+      Alert.alert('New guardian', 'Enter the guardian name, relationship and email address. Supabase will process the invitation request, but inbox delivery is not guaranteed.'); return;
     }
     if (guardianMode === 'new' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guardianEmail)) {
       Alert.alert('New guardian', 'Enter a valid email address for the guardian.'); return;
     }
     if (guardianMode === 'new' && form.guardianContact && !/^9\d{9}$/.test(form.guardianContact)) {
       Alert.alert('New guardian', 'Enter a 10-digit mobile number starting with 9, or leave it blank.'); return;
+    }
+    if (['existing', 'new'].includes(guardianMode) && !guardianApprovalConfirmed) {
+      Alert.alert('Confirm guardian relationship', 'Confirm that this person is authorized to act as the resident’s guardian before saving.'); return;
     }
     void submitEnrollment();
   }
@@ -158,7 +178,11 @@ export default function EnrollNewResident({ navigation, session }) {
         dateOfBirth: form.birthdate || undefined,
         homeAddress: form.homeAddress || undefined,
         guardianId: guardianMode === 'existing' ? selectedGuardianId : undefined,
+        guardianName: guardianMode === 'existing'
+          ? guardianDisplayName(existingGuardians.find((guardian) => guardian.id === selectedGuardianId))
+          : guardianMode === 'new' ? form.guardianName.trim() : undefined,
         relationship: guardianMode === 'existing' ? form.relationship : undefined,
+        relationshipApproved: guardianApprovalConfirmed,
         newGuardian: guardianMode === 'new' ? {
           fullName: form.guardianName.trim(),
           relation: form.relationship,
@@ -173,7 +197,14 @@ export default function EnrollNewResident({ navigation, session }) {
       if (err.residentId) {
         // The resident was saved but a guardian step failed. Continue with the
         // saved resident instead of letting a retry create a duplicate.
-        setCreatedResident({ id: err.residentId, full_name: err.residentName });
+        setCreatedResident({
+          id: err.residentId,
+          full_name: err.residentName,
+          guardianRelationshipStatus: err.guardianRelationshipStatus,
+          guardianInvitationStatus: err.guardianInvitationStatus,
+          guardianName: err.guardianName,
+          relationship: err.relationship,
+        });
         await generateQrForResident(err.residentId);
         setStep(3);
         Alert.alert('Resident saved', err.message);
@@ -234,8 +265,20 @@ export default function EnrollNewResident({ navigation, session }) {
               </>
             )}
           </QrCardPanel>
-          {guardianMode === 'existing' || guardianMode === 'new' ? (
-            <Text style={styles.qrNote}>Guardian relationship: pending verification. {guardianMode === 'new' ? 'An invitation email was sent. ' : ''}Verify it from the resident profile after checking identity and relationship.</Text>
+          {createdResident?.guardianRelationshipStatus === 'verified' ? (
+            <View style={styles.guardianStatusCard}>
+              <Text style={styles.guardianStatusTitle}>Guardian Linked</Text>
+              <Text style={styles.guardianStatusBody}>{createdResident.guardianName || 'Selected guardian'} · {createdResident.relationship || form.relationship}</Text>
+              {createdResident.guardianInvitationStatus === 'auth_accepted' ? (
+                <>
+                  <Text style={styles.guardianStatusBody}><Text style={styles.guardianStatusStrong}>Awaiting email confirmation. </Text>Supabase accepted the invitation request; email delivery is not confirmed. An official must activate the account after email confirmation before resident access is available.</Text>
+                </>
+              ) : createdResident.guardianInvitationStatus === 'not_accepted' ? (
+                <Text style={styles.guardianStatusBody}><Text style={styles.guardianStatusStrong}>Invitation needs attention. </Text>Supabase did not accept the invitation request. Check the guardian account status before retrying, and do not create a duplicate account.</Text>
+              ) : createdResident.guardianAccountState === 'existing' ? (
+                <Text style={styles.guardianStatusBody}>The relationship is approved. Resident access still depends on the guardian account meeting its activation requirements.</Text>
+              ) : null}
+            </View>
           ) : null}
           <QrActionGrid>
             <QrAction variant="save" label={savingQr ? 'Preparing PDF…' : 'Save PDF'} disabled={savingQr || !createdQr?.publicScanUrl} onPress={saveQrCard} />
@@ -348,9 +391,9 @@ export default function EnrollNewResident({ navigation, session }) {
           <>
             <Text style={styles.fieldLabel}>Does this resident have a guardian?</Text>
             <View style={styles.guardianModeRow}>
-              <ModeButton label="No guardian" active={guardianMode === 'none'} onPress={() => setGuardianMode('none')} />
-              <ModeButton label="Existing guardian" active={guardianMode === 'existing'} onPress={() => setGuardianMode('existing')} />
-              <ModeButton label="New guardian" active={guardianMode === 'new'} onPress={() => setGuardianMode('new')} last />
+              <ModeButton label="No guardian" active={guardianMode === 'none'} onPress={() => chooseGuardianMode('none')} />
+              <ModeButton label="Existing guardian" active={guardianMode === 'existing'} onPress={() => chooseGuardianMode('existing')} />
+              <ModeButton label="New guardian" active={guardianMode === 'new'} onPress={() => chooseGuardianMode('new')} last />
             </View>
 
             {guardianMode === 'none' && (<Text style={styles.noGuardianNote}>No guardian will be linked to this resident. You can add one later from their profile.</Text>)}
@@ -363,13 +406,13 @@ export default function EnrollNewResident({ navigation, session }) {
                 ) : guardiansError ? (
                   <Text style={styles.noGuardianNote}>Couldn't load guardians: {guardiansError}</Text>
                 ) : existingGuardians.length === 0 ? (
-                  <Text style={styles.noGuardianNote}>No active guardian accounts found. Choose "New guardian" instead.</Text>
+                  <Text style={styles.noGuardianNote}>No eligible guardian accounts are available. Choose "New guardian" instead.</Text>
                 ) : (
                   <View style={styles.wardList}>
                     {existingGuardians.map((guardian) => {
                       const selected = selectedGuardianId === guardian.id;
                       return (
-                        <TouchableOpacity key={guardian.id} style={[styles.wardRow, selected && styles.wardRowSelected]} onPress={() => setSelectedGuardianId((prev) => (prev === guardian.id ? '' : guardian.id))}>
+                        <TouchableOpacity key={guardian.id} style={[styles.wardRow, selected && styles.wardRowSelected]} onPress={() => { setSelectedGuardianId((prev) => (prev === guardian.id ? '' : guardian.id)); setGuardianApprovalConfirmed(false); }}>
                           <View style={[styles.wardCheckbox, selected && styles.wardCheckboxChecked]}>{selected && <Text style={styles.wardCheckboxMark}>✓</Text>}</View>
                           <View style={styles.wardTextWrap}>
                             <Text style={styles.wardName}>{guardianDisplayName(guardian)}</Text>
@@ -378,6 +421,14 @@ export default function EnrollNewResident({ navigation, session }) {
                         </TouchableOpacity>
                       );
                     })}
+                  </View>
+                )}
+                {!!selectedGuardianId && (
+                  <View style={styles.selectedGuardianCard}>
+                    <Text style={styles.selectedGuardianLabel}>Selected guardian</Text>
+                    <Text style={styles.selectedGuardianName}>{guardianDisplayName(existingGuardians.find((guardian) => guardian.id === selectedGuardianId))}</Text>
+                    <Text style={styles.wardMeta}>{existingGuardians.find((guardian) => guardian.id === selectedGuardianId)?.email || existingGuardians.find((guardian) => guardian.id === selectedGuardianId)?.phoneNumber || 'No contact on file'}</Text>
+                    <Text style={styles.wardMeta}>{guardianAccountStatus(guardianAccountStatuses.get(selectedGuardianId), existingGuardians.find((guardian) => guardian.id === selectedGuardianId))}</Text>
                   </View>
                 )}
                 {!!selectedGuardianId && (
@@ -399,6 +450,7 @@ export default function EnrollNewResident({ navigation, session }) {
                     />
                   </View>
                 )}
+                {!!selectedGuardianId && <RelationshipApproval checked={guardianApprovalConfirmed} onPress={() => setGuardianApprovalConfirmed((value) => !value)} />}
               </>
             )}
 
@@ -428,6 +480,8 @@ export default function EnrollNewResident({ navigation, session }) {
                   <TextInput style={styles.phoneInput} placeholder="9XX-XXX-XXXX" keyboardType="number-pad" maxLength={10} value={form.guardianContact} onChangeText={(v) => updateField('guardianContact', v.replace(/[^0-9]/g, ''))} />
                 </View>
                 <Field label="Guardian Email" required placeholder="name@example.com" value={form.guardianEmail} onChangeText={(v) => updateField('guardianEmail', v.trim())} keyboardType="email-address" autoCapitalize="none" />
+                <RelationshipApproval checked={guardianApprovalConfirmed} onPress={() => setGuardianApprovalConfirmed((value) => !value)} />
+                <Text style={styles.invitationNote}>Supabase may accept the invitation request without confirming delivery. The guardian must confirm their email, and an official must activate the account before resident access is available.</Text>
               </>
             )}
           </>
@@ -448,10 +502,26 @@ function guardianDisplayName(guardian) {
   return guardian?.fullName || guardian?.full_name || 'this guardian';
 }
 
+function guardianAccountStatus(status, guardian) {
+  if (status?.hasAuthUser === true && status.emailConfirmed && guardian?.is_active !== false) return 'Active guardian';
+  if (status?.hasAuthUser === true && status.emailConfirmed) return 'Awaiting account activation';
+  if (status?.hasAuthUser === true) return 'Awaiting email confirmation';
+  return guardian?.is_active === false ? 'Invitation needs attention' : 'Account status unavailable';
+}
+
 function ModeButton({ label, active, onPress, last }) {
   return (
     <TouchableOpacity style={[styles.modeButton, last && styles.modeButtonLast, active && styles.modeButtonActive]} onPress={onPress}>
       <Text style={[styles.modeButtonText, active && styles.modeButtonTextActive]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function RelationshipApproval({ checked, onPress }) {
+  return (
+    <TouchableOpacity style={styles.approvalRow} onPress={onPress} accessibilityRole="checkbox" accessibilityState={{ checked }}>
+      <View style={[styles.approvalBox, checked && styles.approvalBoxChecked]}>{checked ? <Text style={styles.approvalMark}>✓</Text> : null}</View>
+      <Text style={styles.approvalText}>I confirm that this person is authorized to act as the resident's guardian.</Text>
     </TouchableOpacity>
   );
 }
@@ -491,6 +561,19 @@ const styles = StyleSheet.create({
   wardCheckbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: colors.textMuted, marginRight: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   wardCheckboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
   wardCheckboxMark: { color: colors.onPrimary, fontSize: typography.detail, fontFamily: 'Poppins_400Regular' },
+  selectedGuardianCard: { borderWidth: 1, borderColor: colors.primary, borderRadius: 14, backgroundColor: colors.primarySoft, padding: spacing.card, marginBottom: 12 },
+  selectedGuardianLabel: { fontSize: typography.caption, fontFamily: 'Poppins_500Medium', color: colors.textSecondary },
+  selectedGuardianName: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold', color: colors.textPrimary, marginTop: 3 },
+  approvalRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.surface, padding: spacing.card, marginTop: 4, marginBottom: 16, minHeight: spacing.control },
+  approvalBox: { width: 26, height: 26, borderRadius: 8, borderWidth: 1.5, borderColor: colors.borderStrong, marginRight: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  approvalBoxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
+  approvalMark: { color: colors.onPrimary, fontSize: typography.detail, fontFamily: 'Poppins_600SemiBold' },
+  approvalText: { flex: 1, fontSize: typography.detail, fontFamily: 'Poppins_500Medium', color: colors.textPrimary, lineHeight: Math.ceil(typography.detail * 1.45) },
+  invitationNote: { fontSize: typography.caption, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, marginBottom: 16, lineHeight: Math.ceil(typography.caption * 1.5) },
+  guardianStatusCard: { width: '100%', borderWidth: 1, borderColor: colors.primary, borderRadius: 14, backgroundColor: colors.primarySoft, padding: spacing.card, marginTop: 12 },
+  guardianStatusTitle: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold', color: colors.primary },
+  guardianStatusBody: { fontSize: typography.caption, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, marginTop: 6, lineHeight: Math.ceil(typography.caption * 1.5) },
+  guardianStatusStrong: { fontFamily: 'Poppins_600SemiBold', color: colors.warningInk },
   noGuardianNote: { fontSize: typography.caption, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, marginBottom: 14, lineHeight: Math.ceil(typography.caption * 1.5) },
   guardianModeRow: { flexDirection: 'row', marginBottom: 14 },
   modeButton: { flex: 1, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 8, paddingVertical: 10, marginRight: 8, alignItems: 'center', backgroundColor: colors.surfaceSunken },

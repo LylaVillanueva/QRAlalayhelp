@@ -37,19 +37,30 @@ export default function ProfileScreen({ route, navigation }) {
 
   const [links, setLinks] = useState({ unavailable: true, links: [] });
   const [guardians, setGuardians] = useState([]);
+  const [guardianAccountStatuses, setGuardianAccountStatuses] = useState(new Map());
   const [linkBusy, setLinkBusy] = useState(false);
   const [modal, setModal] = useState(null);             // { title, message, actions }
   const [linkForm, setLinkForm] = useState(null);       // { guardianId, relationship }
-  const [verifyTarget, setVerifyTarget] = useState(null); // { linkId, guardianName, relationship }
+  const [guardianApprovalConfirmed, setGuardianApprovalConfirmed] = useState(false);
+  const [unlinkTarget, setUnlinkTarget] = useState(null);
 
   const loadExtras = useCallback(async () => {
     if (!residentId) return;
-    const [cardResult, linkResult] = await Promise.all([
+    const [cardResult, linkResult, accountStatuses] = await Promise.all([
       api.getResidentQrCard(residentId).catch(() => ({ unavailable: true, card: null })),
       api.listResidentGuardianLinks(residentId).catch(() => ({ unavailable: true, links: [] })),
+      api.listAccountStatus().catch(() => null),
     ]);
     setQrStatus(cardResult);
-    setLinks(linkResult);
+    const statusMap = accountStatuses instanceof Map ? accountStatuses : new Map();
+    setGuardianAccountStatuses(statusMap);
+    setLinks({
+      ...linkResult,
+      links: linkResult.links.map((link) => {
+        const accountStatus = statusMap.get(link.guardianId);
+        return accountStatus ? { ...link, ...accountStatus } : link;
+      }),
+    });
   }, [residentId]);
 
   useFocusEffect(useCallback(() => { loadExtras(); }, [loadExtras]));
@@ -165,56 +176,71 @@ export default function ProfileScreen({ route, navigation }) {
 
   // ---- Guardian relationships -------------------------------------------
   async function openLinkGuardian() {
+    setGuardianApprovalConfirmed(false);
     setLinkForm({ guardianId: '', relationship: '' });
     try {
-      const [all, currentLinks] = await Promise.all([
+      const [all, currentLinks, accountStatuses] = await Promise.all([
         api.listGuardians(),
         api.listResidentGuardianLinks(resident.id),
+        api.listAccountStatus().catch(() => null),
       ]);
       if (!currentLinks.unavailable) setLinks(currentLinks);
+      const statusMap = accountStatuses instanceof Map ? accountStatuses : new Map();
+      setGuardianAccountStatuses(statusMap);
       const linkedIds = new Set(currentLinks.links.filter((link) => ['pending', 'verified'].includes(link.status)).map((link) => link.guardianId));
-      setGuardians(all.filter((guardian) => guardian.is_active !== false && !linkedIds.has(guardian.id)));
+      setGuardians(all.filter((guardian) => (statusMap.has(guardian.id)
+        ? statusMap.get(guardian.id)?.hasAuthUser === true
+        : guardian.is_active !== false) && !linkedIds.has(guardian.id)));
     } catch (err) { setLinkForm(null); notice('Could not load guardians', err.message); }
   }
 
-  // Verifying is a separate, audited official decision that records how the
-  // guardian's identity and relationship were checked.
-  function confirmVerify(linkId, guardianName, relationship) {
-    closeModal();
-    setVerifyTarget({ linkId, guardianName, relationship });
+  async function approvePendingLink(link) {
+    if (!link?.id || linkBusy) return;
+    setLinkBusy(true);
+    try {
+      await api.approveGuardianRelationship({ residentId: resident.id, guardianId: link.guardianId, relationship: link.relationship, context: 'pending_review' });
+      await Promise.all([loadExtras(), refresh()]);
+      notice('Guardian Linked', `${link.guardianName} is now recorded as an approved guardian. Resident access still requires an eligible, active account.`);
+    } catch (err) { notice('Could not approve relationship', err.message); }
+    finally { setLinkBusy(false); }
   }
 
-  async function submitVerify(reason) {
-    const target = verifyTarget;
+  async function submitUnlink(reason) {
+    const target = unlinkTarget;
     if (!target || linkBusy) return;
     setLinkBusy(true);
     try {
-      await api.verifyGuardianLink(target.linkId, reason);
-      setVerifyTarget(null);
+      await api.unlinkGuardianRelationship(target.id, reason);
+      setUnlinkTarget(null);
       await Promise.all([loadExtras(), refresh()]);
-      notice('Relationship verified', `${target.guardianName} is now a verified guardian of ${resident.name}. They can see this resident once their account is active.`);
-    } catch (err) { notice('Could not verify relationship', err.message); }
+      notice('Guardian unlinked', `${target.guardianName} no longer has access through this resident relationship.`);
+    } catch (err) { notice('Could not unlink guardian', err.message); }
+    finally { setLinkBusy(false); }
+  }
+
+  async function resendInvitation(link) {
+    if (!link?.guardianId || linkBusy) return;
+    setLinkBusy(true);
+    try {
+      const result = await api.resendGuardianInvitation(link.guardianId);
+      await loadExtras();
+      notice(result.authAccepted ? 'Resend request accepted' : 'Invitation status needs review', result.authAccepted
+        ? 'Supabase accepted the resend request. Email delivery is not confirmed. The guardian must confirm their email, and an official must activate the account.'
+        : 'Supabase did not confirm that it accepted the resend request. Check Auth and email-provider logs before trying again.');
+    } catch (err) { notice('Could not resend invitation', err.message); }
     finally { setLinkBusy(false); }
   }
 
   async function submitLink() {
-    if (linkBusy || !linkForm?.guardianId || !linkForm?.relationship) return;
+    if (linkBusy || !linkForm?.guardianId || !linkForm?.relationship || !guardianApprovalConfirmed) return;
     const guardian = guardians.find((item) => item.id === linkForm.guardianId);
     setLinkBusy(true);
     try {
-      const result = await api.linkGuardianToResident({ residentId: resident.id, guardianId: linkForm.guardianId, relationship: linkForm.relationship });
+      await api.linkGuardianToResident({ residentId: resident.id, guardianId: linkForm.guardianId, relationship: linkForm.relationship });
       setLinkForm(null);
-      if (result.existing) {
-        await loadExtras();
-        if (result.status === 'pending') {
-          confirmVerify(result.linkId, guardian?.fullName || 'This guardian', linkForm.relationship);
-        } else {
-          notice('Relationship already verified', 'This guardian is already verified for this resident. No duplicate relationship was created.');
-        }
-        return;
-      }
-      // Linking and verifying are separate decisions; verification is offered next.
-      confirmVerify(result.linkId, guardian?.fullName || 'This guardian', linkForm.relationship);
+      setGuardianApprovalConfirmed(false);
+      await Promise.all([loadExtras(), refresh()]);
+      notice('Guardian Linked', `${guardian?.fullName || 'The selected guardian'} was approved and linked to ${resident.name}.`);
     } catch (err) {
       await loadExtras();
       const message = err.code === 'GUARDIAN_LINK_EXISTS'
@@ -293,22 +319,39 @@ export default function ProfileScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
         <View style={styles.card}>
-          {resident.guardianName ? <>
+          {verifiedLinks.length ? verifiedLinks.map((link, index) => (
+            <React.Fragment key={link.id}>
+              {index > 0 && <Divider />}
+              <View style={styles.linkRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.linkName}>{link.guardianName}</Text>
+                  <Text style={styles.historyMeta}>{link.relationship} · {link.guardianEmail || link.guardianPhone || 'No contact on file'}</Text>
+                  <View style={styles.pillRow}>
+                    <Text style={[styles.cardPill, styles.verified]}>Guardian Linked</Text>
+                    <Text style={[styles.cardPill, accountStatusStyle(link)]}>{accountStatusLabel(link)}</Text>
+                  </View>
+                  {link.hasAuthUser && !link.guardianActive && !link.emailConfirmed && (
+                    <TouchableOpacity style={styles.smallAction} disabled={linkBusy} onPress={() => resendInvitation(link)}>
+                      <Text style={styles.smallActionText}>{linkBusy ? 'Please wait…' : 'Resend invitation'}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity style={styles.unlinkButton} disabled={linkBusy} onPress={() => setUnlinkTarget(link)}>
+                  <Text style={styles.unlinkButtonText}>Unlink</Text>
+                </TouchableOpacity>
+              </View>
+            </React.Fragment>
+          )) : resident.guardianName ? <>
             <InfoRow label="Guardian Name" value={resident.guardianName} />
             <Divider />
             <InfoRow label="Relationship" value={resident.relationship} />
             <Divider />
             <InfoRow label="Contact Number" value={resident.guardianContact} />
-            <Divider />
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Relationship status</Text>
-              <Text style={[styles.cardPill, styles.verified]}>Verified</Text>
-            </View>
-          </> : <Text style={styles.emptyText}>No verified guardian. Assistance can still be requested for this resident.</Text>}
+          </> : <Text style={styles.emptyText}>No guardian linked. Assistance can still be requested for this resident.</Text>}
         </View>
 
         {pendingLinks.length > 0 && <>
-          <Text style={styles.section}>Pending Guardian Relationships</Text>
+          <Text style={styles.section}>Relationships awaiting official review</Text>
           <View style={styles.card}>
             {pendingLinks.map((link, index) => (
               <React.Fragment key={link.id}>
@@ -317,14 +360,18 @@ export default function ProfileScreen({ route, navigation }) {
                     <Text style={styles.linkName}>{link.guardianName}</Text>
                     <Text style={styles.historyMeta}>{link.relationship} · {link.guardianEmail || link.guardianPhone || 'No contact on file'}</Text>
                     <View style={styles.pillRow}>
-                      <Text style={[styles.cardPill, styles.pending]}>Pending verification</Text>
-                      <Text style={[styles.cardPill, link.guardianActive ? styles.verified : styles.inactive]}>{link.guardianActive ? 'Account active' : 'Account inactive'}</Text>
-                      {!link.emailConfirmed && <Text style={[styles.cardPill, styles.inactive]}>Email not confirmed</Text>}
+                      <Text style={[styles.cardPill, styles.pending]}>Pending official review</Text>
+                      <Text style={[styles.cardPill, accountStatusStyle(link)]}>{accountStatusLabel(link)}</Text>
                     </View>
                   </View>
-                  <TouchableOpacity style={styles.verifyButton} disabled={linkBusy} onPress={() => confirmVerify(link.id, link.guardianName, link.relationship)}>
-                    <Text style={styles.verifyText}>Verify</Text>
-                  </TouchableOpacity>
+                  <View style={styles.linkActions}>
+                    <TouchableOpacity style={styles.reviewButton} disabled={linkBusy} onPress={() => approvePendingLink(link)}>
+                      <Text style={styles.reviewText}>{linkBusy ? 'Please wait…' : 'Review & confirm'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.unlinkButton} disabled={linkBusy} onPress={() => setUnlinkTarget(link)}>
+                      <Text style={styles.unlinkButtonText}>Unlink</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 {index < pendingLinks.length - 1 && <Divider />}
               </React.Fragment>
@@ -367,45 +414,59 @@ export default function ProfileScreen({ route, navigation }) {
       <AppModal
         visible={!!linkForm}
         title="Link a guardian"
-        onClose={() => setLinkForm(null)}
+        onClose={() => { setLinkForm(null); setGuardianApprovalConfirmed(false); }}
         actions={[
-          { label: 'Cancel', onPress: () => setLinkForm(null), variant: 'plain', disabled: linkBusy },
-          { label: linkBusy ? 'Linking…' : 'Link Guardian', onPress: submitLink, variant: 'primary', disabled: linkBusy || !linkForm?.guardianId || !linkForm?.relationship },
+          { label: 'Cancel', onPress: () => { setLinkForm(null); setGuardianApprovalConfirmed(false); }, variant: 'plain', disabled: linkBusy },
+          { label: linkBusy ? 'Saving…' : 'Confirm and link', onPress: submitLink, variant: 'primary', disabled: linkBusy || !linkForm?.guardianId || !linkForm?.relationship || !guardianApprovalConfirmed },
         ]}
       >
-        <Text style={styles.modalText}>Choose an active guardian account. The link starts as pending; you can verify it next or later.</Text>
+        <Text style={styles.modalText}>Choose an eligible guardian and confirm the relationship before saving. Account activation and email confirmation remain separate requirements.</Text>
         {guardians.length === 0 ? (
           <Text style={styles.emptyText}>No unlinked guardian accounts are available. Review any pending or verified relationships above.</Text>
         ) : guardians.map((guardian) => {
           const selected = linkForm?.guardianId === guardian.id;
           return (
-            <TouchableOpacity key={guardian.id} style={[styles.choice, selected && styles.choiceActive]} onPress={() => setLinkForm((form) => ({ ...form, guardianId: guardian.id }))}>
+            <TouchableOpacity key={guardian.id} style={[styles.choice, selected && styles.choiceActive]} onPress={() => { setLinkForm((form) => ({ ...form, guardianId: guardian.id })); setGuardianApprovalConfirmed(false); }}>
               <Text style={[styles.choiceText, selected && styles.choiceTextActive]}>{guardian.fullName}</Text>
               <Text style={styles.historyMeta}>{guardian.email || guardian.phoneNumber || 'No contact on file'}</Text>
             </TouchableOpacity>
           );
         })}
+        {!!linkForm?.guardianId && (
+          <View style={styles.selectedGuardianCard}>
+            <Text style={styles.selectedGuardianLabel}>Selected guardian</Text>
+            <Text style={styles.linkName}>{guardians.find((guardian) => guardian.id === linkForm.guardianId)?.fullName || 'Selected guardian'}</Text>
+            <Text style={styles.historyMeta}>{accountStatusLabel({
+              ...guardianAccountStatuses.get(linkForm.guardianId),
+              guardianActive: guardians.find((guardian) => guardian.id === linkForm.guardianId)?.is_active === true,
+            })}</Text>
+          </View>
+        )}
         <Text style={[styles.modalText, { marginTop: 10 }]}>Relationship <Text style={{ color: colors.primary }}>*</Text></Text>
         <View style={styles.pillRow}>
           {RELATIONSHIPS.map((value) => {
             const selected = linkForm?.relationship === value;
             return (
-              <TouchableOpacity key={value} style={[styles.chip, selected && styles.choiceActive]} onPress={() => setLinkForm((form) => ({ ...form, relationship: value }))}>
+              <TouchableOpacity key={value} style={[styles.chip, selected && styles.choiceActive]} onPress={() => { setLinkForm((form) => ({ ...form, relationship: value })); setGuardianApprovalConfirmed(false); }}>
                 <Text style={[styles.historyMeta, selected && styles.choiceTextActive]}>{value}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
+        <TouchableOpacity style={styles.approvalRow} onPress={() => setGuardianApprovalConfirmed((value) => !value)} accessibilityRole="checkbox" accessibilityState={{ checked: guardianApprovalConfirmed }}>
+          <View style={[styles.approvalBox, guardianApprovalConfirmed && styles.approvalBoxChecked]}>{guardianApprovalConfirmed ? <Text style={styles.approvalMark}>✓</Text> : null}</View>
+          <Text style={styles.approvalText}>I confirm that this person is authorized to act as the resident's guardian.</Text>
+        </TouchableOpacity>
       </AppModal>
 
       <ReasonPromptModal
-        visible={!!verifyTarget}
-        title={`Verify ${verifyTarget?.guardianName || 'guardian'} as ${String(verifyTarget?.relationship || 'guardian').toLowerCase()}? Record how you checked identity and relationship.`}
-        placeholder="e.g. checked barangay ID and birth certificate in person"
-        confirmLabel="Verify Relationship"
+        visible={!!unlinkTarget}
+        title={`Unlink ${unlinkTarget?.guardianName || 'guardian'} from ${resident.name}?`}
+        placeholder="Record the reason for changing or ending this guardian relationship"
+        confirmLabel="Unlink Guardian"
         submitting={linkBusy}
-        onCancel={() => setVerifyTarget(null)}
-        onSubmit={submitVerify}
+        onCancel={() => setUnlinkTarget(null)}
+        onSubmit={submitUnlink}
       />
       <AppModal visible={!!modal} title={modal?.title} onClose={closeModal} actions={modal?.actions}>
         <Text style={styles.modalText}>{modal?.message}</Text>
@@ -423,6 +484,20 @@ function InfoRow({ label, value }) {
       <Text style={styles.infoValue}>{value || '-'}</Text>
     </View>
   );
+}
+
+function accountStatusLabel(link) {
+  if (link.hasAuthUser === false) return 'Invitation needs attention';
+  if (link.hasAuthUser === true && !link.emailConfirmed) return 'Awaiting email confirmation';
+  if (link.emailConfirmed && !link.guardianActive) return 'Awaiting account activation';
+  if (link.emailConfirmed && link.guardianActive) return 'Active guardian';
+  return 'Account status unavailable';
+}
+
+function accountStatusStyle(link) {
+  if (link.emailConfirmed && link.guardianActive) return styles.verified;
+  if (link.emailConfirmed || link.hasAuthUser === true) return styles.pending;
+  return styles.inactive;
 }
 
 const styles = StyleSheet.create({
@@ -461,8 +536,20 @@ const styles = StyleSheet.create({
 
   linkRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 },
   linkName: { fontSize: typography.detail, fontFamily: 'Poppins_600SemiBold', color: colors.textPrimary },
-  verifyButton: { borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primarySoft, borderRadius: 9, paddingVertical: 8, paddingHorizontal: 14, minHeight: 40, justifyContent: 'center' },
-  verifyText: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.caption },
+  reviewButton: { borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primarySoft, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 14, minHeight: 42, justifyContent: 'center' },
+  reviewText: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.caption },
+  linkActions: { alignItems: 'stretch', gap: 6 },
+  smallAction: { alignSelf: 'flex-start', marginTop: 8, borderWidth: 1, borderColor: colors.primaryBorder, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 7, minHeight: 40, justifyContent: 'center' },
+  smallActionText: { color: colors.primary, fontSize: typography.caption, fontFamily: 'Poppins_600SemiBold' },
+  unlinkButton: { borderWidth: 1, borderColor: colors.alertInk, backgroundColor: colors.alertSoft, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12, minHeight: 42, justifyContent: 'center' },
+  unlinkButtonText: { color: colors.alertInk, fontFamily: 'Poppins_600SemiBold', fontSize: typography.caption },
+  selectedGuardianCard: { borderWidth: 1, borderColor: colors.primaryBorder, borderRadius: 14, backgroundColor: colors.primarySoft, padding: spacing.card, marginTop: 10 },
+  selectedGuardianLabel: { color: colors.textSecondary, fontSize: typography.caption, fontFamily: 'Poppins_500Medium', marginBottom: 4 },
+  approvalRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.surface, padding: spacing.card, marginTop: 12, minHeight: spacing.control },
+  approvalBox: { width: 26, height: 26, borderRadius: 8, borderWidth: 1.5, borderColor: colors.border, marginRight: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  approvalBoxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
+  approvalMark: { color: colors.onPrimary, fontSize: typography.detail, fontFamily: 'Poppins_600SemiBold' },
+  approvalText: { flex: 1, fontSize: typography.detail, fontFamily: 'Poppins_500Medium', color: colors.textPrimary, lineHeight: Math.ceil(typography.detail * 1.45) },
 
   historyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   historyTextWrap: { flex: 1 },

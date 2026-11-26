@@ -550,35 +550,34 @@ export const supabaseApi = {
     };
   },
 
-  // Creates a pending link; verification is a separate, explicit official action.
-  async linkGuardianToResident({ residentId, guardianId, relationship }) {
-    const current = await this.listResidentGuardianLinks(residentId);
-    const existing = current.links.find((link) => link.guardianId === guardianId && ['pending', 'verified'].includes(link.status));
-    if (existing) return { linkId: existing.id, status: existing.status, existing: true };
-    try {
-      const linkId = await rpc('create_guardian_link', {
-        p_resident_id: residentId, p_guardian_profile_id: guardianId, p_relationship: relationship,
-      });
-      return { linkId, status: 'pending', existing: false };
-    } catch (error) {
-      // The database's unique current-link constraint remains authoritative.
-      // Resolve the race by re-reading the link instead of showing SQL errors.
-      if (error.code === '23505' || /one_currentguardian_link/i.test(error.message || '')) {
-        const refreshed = await this.listResidentGuardianLinks(residentId);
-        const linked = refreshed.links.find((link) => link.guardianId === guardianId && ['pending', 'verified'].includes(link.status));
-        if (linked) return { linkId: linked.id, status: linked.status, existing: true };
-        const duplicate = new Error('A current relationship with this guardian already exists. Refresh this resident’s profile and review the relationship there.');
-        duplicate.code = 'GUARDIAN_LINK_EXISTS';
-        throw duplicate;
-      }
-      throw error;
-    }
+  // The official's explicit confirmation is recorded as approval in one
+  // audited transaction. Historical pending links are approved in place.
+  async approveGuardianRelationship({ residentId, guardianId, relationship, context = 'linking' }) {
+    if (!residentId || !guardianId || !relationship) throw new Error('Choose a guardian and relationship before confirming.');
+    const result = await optionalRpc('approve_guardian_relationship', {
+      p_resident_id: residentId,
+      p_guardian_profile_id: guardianId,
+      p_relationship: relationship,
+      p_context: context,
+    });
+    if (result.unavailable) throw pendingError('Approving a guardian relationship');
+    return { linkId: result.data, status: 'verified' };
   },
 
-  async verifyGuardianLink(linkId, reason) {
-    if (!linkId) throw new Error('Choose a guardian relationship to verify.');
-    if (!reason || !reason.trim()) throw new Error('Record how the guardian’s identity and relationship were checked.');
-    return rpc('review_guardian_link', { p_link_id: linkId, p_decision: 'verified', p_reason: reason.trim() });
+  async linkGuardianToResident({ residentId, guardianId, relationship }) {
+    return this.approveGuardianRelationship({ residentId, guardianId, relationship, context: 'linking' });
+  },
+
+  async unlinkGuardianRelationship(linkId, reason) {
+    if (!linkId || !reason?.trim()) throw new Error('A relationship and reason are required to unlink a guardian.');
+    return rpc('review_guardian_link', { p_link_id: linkId, p_decision: 'revoked', p_reason: reason.trim() });
+  },
+
+  async resendGuardianInvitation(profileId) {
+    if (!profileId) throw new Error('Choose a guardian account to resend its invitation.');
+    const { data, error } = await supabase.functions.invoke('resend-guardian-invitation', { body: { profileId } });
+    await functionFailure(error);
+    return { authAccepted: data?.data?.resent === true };
   },
 
   // Email-confirmed status per profile, when the backend provides it.
@@ -627,43 +626,55 @@ export const supabaseApi = {
     });
     try {
       if (input.guardianId) {
-        // The link starts pending and grants no access. Verifying it is a
-        // separate official action (resident profile) with its own reason.
-        await rpc('create_guardian_link', {
-          p_resident_id: residentId,
-          p_guardian_profile_id: input.guardianId,
-          p_relationship: input.relationship || 'Guardian',
+        if (input.relationshipApproved !== true) throw new Error('Confirm the guardian relationship before saving.');
+        await this.approveGuardianRelationship({
+          residentId, guardianId: input.guardianId,
+          relationship: input.relationship || 'Guardian', context: 'registration',
         });
+        return {
+          id: residentId, full_name: input.fullName, resident_category: input.residentType || null,
+          guardianName: input.guardianName || null, relationship: input.relationship || 'Guardian',
+          guardianRelationshipStatus: 'verified', guardianAccountState: 'existing',
+        };
       }
       if (input.newGuardian) {
         // Email only: phone sign-in is not configured, so a phone-only
         // guardian could never sign in.
         if (!input.newGuardian.email) throw new Error('The resident was created, but a guardian invitation needs an email address.');
-        // Invite without wardIds and create the pending link here, so the
-        // relationship appears in list_resident_guardian_links for review.
+        if (input.relationshipApproved !== true) throw new Error('Confirm the guardian relationship before saving.');
+        // The backend records approval with the invitation. Account activation
+        // and confirmed email remain independent access requirements.
         const { data, error } = await supabase.functions.invoke('invite-account', {
           body: {
             email: input.newGuardian.email,
             fullName: input.newGuardian.fullName,
             phone: input.newGuardian.phone || null,
             role: 'guardian',
+            wardIds: [residentId],
+            relationship: input.newGuardian.relation || 'Guardian',
+            relationshipApproved: true,
           },
         });
         if (error) {
           const detailed = await functionFailure(error).catch((reason) => reason);
           detailed.code = detailed.code || 'GUARDIAN_INVITATION_FAILED';
           detailed.message = `Resident created, but the guardian invitation could not be sent: ${detailed.message}`;
+          if (detailed.code === 'INVITATION_DELIVERY_FAILED') {
+            detailed.guardianRelationshipStatus = 'verified';
+            detailed.guardianInvitationStatus = 'not_accepted';
+            detailed.guardianName = input.newGuardian.fullName;
+            detailed.relationship = input.newGuardian.relation || 'Guardian';
+          }
           throw detailed;
         }
         const guardianId = data?.data?.profileId;
         if (!guardianId) throw new Error('The guardian invitation did not return an account.');
-        // Invitation, email confirmation, account activation and relationship
-        // verification are separate gates; sending the invitation verifies nothing.
-        await rpc('create_guardian_link', {
-          p_resident_id: residentId,
-          p_guardian_profile_id: guardianId,
-          p_relationship: input.newGuardian.relation || 'Guardian',
-        });
+        return {
+          id: residentId, full_name: input.fullName, resident_category: input.residentType || null,
+          guardianId, guardianName: input.newGuardian.fullName, relationship: input.newGuardian.relation || 'Guardian',
+          guardianRelationshipStatus: 'verified',
+          guardianInvitationStatus: data?.data?.invitationSent === true ? 'auth_accepted' : 'not_sent',
+        };
       }
     } catch (guardianError) {
       // The resident already exists; let the screen continue with it.
@@ -674,7 +685,8 @@ export const supabaseApi = {
       }
       throw guardianError;
     }
-    return { id: residentId, full_name: input.fullName, resident_category: input.residentType || null };
+    return { id: residentId, full_name: input.fullName, resident_category: input.residentType || null,
+      guardianRelationshipStatus: 'none' };
   },
 
   // Partial update only. The older full-row RPC overwrote every column,
