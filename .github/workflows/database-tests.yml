@@ -1,0 +1,49 @@
+name: Isolated Supabase database tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  supabase-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 3.4.0
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Confirm isolated test inputs
+        working-directory: QRAlalay-Backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration_count=$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l | tr -d ' ')
+          test -z "${SUPABASE_ACCESS_TOKEN:-}"
+          test "$migration_count" -eq 15
+          test "$(sed -n 's/^select plan(\([0-9][0-9]*\));$/\1/p' supabase/tests/database/20261126_resident_patch_qr_export.test.sql | head -1)" -eq 46
+          test "$(sed -n 's/^select plan(\([0-9][0-9]*\));$/\1/p' supabase/tests/database/20261126_responder_history_scope.test.sql | head -1)" -eq 15
+          test "$(sed -n 's/^select plan(\([0-9][0-9]*\));$/\1/p' supabase/tests/database/20261125_workflow_security.test.sql | head -1)" -eq 42
+      - name: Start isolated Supabase stack and apply all migrations
+        run: |
+          supabase start --workdir QRAlalay-Backend --exclude studio,analytics
+          supabase db reset --workdir QRAlalay-Backend --no-seed
+      - name: Run resident and QR export assertions (46)
+        run: supabase test db --workdir QRAlalay-Backend supabase/tests/database/20261126_resident_patch_qr_export.test.sql
+      - name: Run responder history authorization assertions (15)
+        run: supabase test db --workdir QRAlalay-Backend supabase/tests/database/20261126_responder_history_scope.test.sql
+      - name: Run workflow and official closure assertions (42)
+        run: supabase test db --workdir QRAlalay-Backend supabase/tests/database/20261125_workflow_security.test.sql
+      - name: Run QR encryption and Edge Function contract tests
+        run: deno test --allow-env QRAlalay-Backend/supabase/functions/_shared/qr-token-crypto.test.ts QRAlalay-Backend/supabase/functions/_shared/qr-functions.test.ts
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: supabase stop --workdir QRAlalay-Backend --no-backup

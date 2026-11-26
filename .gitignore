@@ -1,0 +1,33 @@
+# Secrets and local configuration
+**/.env
+**/.env.*
+!**/.env.example
+**/.supabase/
+**/.link.json
+
+# Dependencies and generated output
+**/node_modules/
+**/.expo/
+**/.next/
+**/.vercel/
+**/build/
+**/dist/
+**/coverage/
+**/.cache/
+**/.gradle/
+**/.idea/
+**/.DS_Store
+*.log
+
+# Signing material, local databases and backups
+*.jks
+*.keystore
+*.p12
+*service-account*.json
+**/google-services.json
+*.dump
+*.backup
+*.sqlite
+*.db
+*.apk
+*.aab
