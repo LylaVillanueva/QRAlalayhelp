@@ -47,14 +47,13 @@ export default function ProfileScreen({ route, navigation }) {
             {/* Using liveResident ensures this updates immediately */}
             <Text style={styles.contextTitle}>{liveResident.name}</Text>
             <Text style={styles.small}>Type: {liveResident.type || 'Resident'}</Text>
-            <Text style={styles.small}>ID Number: {liveResident.code || liveResident.id}</Text>
           </View>
         </View>
 
         <View style={styles.statusHeader}>
-          <Text style={styles.statusLabel}>My Ward's Status: </Text>
+          <Text style={styles.statusLabel}>Assistance: </Text>
           <Text style={[styles.statusPill, activeAlert ? styles.danger : styles.closed]}>
-            {activeAlert ? alertStageLabel(activeAlert.status) : 'No active alert'}
+            {activeAlert ? alertStageLabel(activeAlert.status) : 'No open request'}
           </Text>
         </View>
         <View style={styles.divider} />
@@ -79,10 +78,10 @@ export default function ProfileScreen({ route, navigation }) {
           <InfoRow label="Contact Number" value={liveResident.guardianContact} />
         </View>
 
-        <Text style={styles.section}>Scan & Alert History</Text>
+        <Text style={styles.section}>Assistance History</Text>
         <View style={styles.card}>
           {wardAlerts.length === 0 ? (
-            <Text style={styles.emptyText}>No scan or alert history yet for this ward.</Text>
+            <Text style={styles.emptyText}>No assistance requests yet.</Text>
           ) : wardAlerts.map((alert, index) => (
             <React.Fragment key={alert.id}>
               <TouchableOpacity
@@ -110,7 +109,7 @@ export default function ProfileScreen({ route, navigation }) {
         <View style={styles.readOnlyNote}>
           <FontAwesome5 name="lock" size={14} color={colors.textSecondary} style={{ marginHorizontal: 6 }} />
           <Text style={styles.readOnlyText}>
-            Ward information is read-only. Only authorized barangay officials can edit resident information.
+            Only barangay officials can edit resident information. As a verified guardian you can update the resident's photo.
           </Text>
         </View>
       </ScrollView>

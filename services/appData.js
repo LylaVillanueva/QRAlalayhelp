@@ -8,8 +8,11 @@ export function loadCachedBarangayContacts(account) {
 
 export async function loadAppData(client, account) {
   const official = account.role === 'barangay_official';
+  // The audit log and account list are official-only on the server; asking
+  // for them as a guardian or responder fails the whole load.
   const [residentRows, incidentRows, logs, accounts, profile] = await Promise.all([
-    client.listResidents(), client.listActiveIncidents({ includeClosed: true }), client.listAuditLogs(),
+    client.listResidents(), client.listActiveIncidents({ includeClosed: true }),
+    official ? client.listAuditLogs() : [],
     official ? client.listAccounts() : [], client.getMyProfile(),
   ]);
   const residents = residentRows.map(mapResident);
@@ -25,7 +28,8 @@ export async function loadAppData(client, account) {
   }
   const users = official
     ? accounts.map((row) => mapUser(row, row.role, residents, account.barangayName))
-    : [mapUser(account, account.role, residents, account.barangayName)];
+    : [mapUser(account, account.role, residents, account.barangayName,
+      account.role === 'guardian' ? residents.map((resident) => resident.id) : null)];
   return { residents, users, myPhotoUrl: profile?.photoUrl || null, alerts: incidentRows.map((row) => mapIncident(row, residents, users)),
     auditLogs: logs.map((row) => mapAuditLog(row, users, residents, incidentRows)), barangayContacts };
 }

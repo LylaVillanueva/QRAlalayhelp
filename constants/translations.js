@@ -20,9 +20,9 @@ export const translations = {
     resendCode: "Didn't get a code? Resend",
     back: '‹ Back',
 
-    // Permission screen
-    permission: 'Permission',
-    requireBeforeContinuing: 'Require before continuing',
+    // Privacy agreement (first sign-in)
+    permission: 'Privacy and Data',
+    requireBeforeContinuing: 'Please read before continuing',
     agreeContinue: 'I agree - Continue',
     requesting: 'Requesting...',
 
@@ -56,11 +56,16 @@ export const translations = {
     // Tab bar
     home: 'Home',
     residents: 'Residents',
-    myWards: 'My Wards',
-    alert: 'Alert',
-    alerts: 'Alerts',
-    incidents: 'Incidents',
-    profile: 'Profile',
+    myWards: 'My Residents',
+    myResidents: 'My Residents',
+    assistance: 'Assistance',
+    assignments: 'Assignments',
+    history: 'History',
+    emergencyHelp: 'Call Barangay / 911',
+    alert: 'Assistance',
+    alerts: 'Assistance',
+    incidents: 'History',
+    profile: 'Settings',
     scan: 'Scan',
   },
   fil: {
@@ -78,8 +83,8 @@ export const translations = {
     resendCode: 'Hindi natanggap ang code? Ipadala Muli',
     back: '‹ Bumalik',
 
-    permission: 'Pahintulot',
-    requireBeforeContinuing: 'Kailangan bago magpatuloy',
+    permission: 'Privacy at Datos',
+    requireBeforeContinuing: 'Pakibasa bago magpatuloy',
     agreeContinue: 'Sumasang-ayon Ako - Magpatuloy',
     requesting: 'Hinihiling...',
 
@@ -111,11 +116,16 @@ export const translations = {
 
     home: 'Home',
     residents: 'Mga Residente',
-    myWards: 'Aking mga Ward',
-    alert: 'Alerto',
-    alerts: 'Mga Alerto',
-    incidents: 'Mga Insidente',
-    profile: 'Profile',
+    myWards: 'Aking mga Residente',
+    myResidents: 'Aking mga Residente',
+    assistance: 'Tulong',
+    assignments: 'Mga Takda',
+    history: 'Kasaysayan',
+    emergencyHelp: 'Tumawag sa Barangay / 911',
+    alert: 'Tulong',
+    alerts: 'Tulong',
+    incidents: 'Kasaysayan',
+    profile: 'Mga Setting',
     scan: 'I-scan',
   },
 };

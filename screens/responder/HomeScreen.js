@@ -22,7 +22,7 @@ export default function HomeScreen({ navigation }) {
 
 const recentIncidents = useMemo(
   () => alerts
-    .filter((alert) => alert.responderId === account.id)
+    .filter((alert) => alert.responderId === account.id && alert.status === 'closed')
     .slice(0, 3),
   [alerts, account.id]
 );
@@ -59,9 +59,9 @@ const recentIncidents = useMemo(
         {!currentAssignment ? (
           <View style={styles.emptyCard}>
             <FontAwesome5 name="check-circle" size={24} color={colors.successInk} />
-            <Text style={styles.emptyTitle}>No active alerts</Text>
-            <Text style={styles.emptyText}>You currently have no emergency task assigned.</Text>
-            <Text style={styles.emptyText}>You may scan a resident's QR code, if needed.</Text>
+            <Text style={styles.emptyTitle}>No open assignments</Text>
+            <Text style={styles.emptyText}>You have no assistance request assigned right now.</Text>
+            <Text style={styles.emptyText}>If you find a resident who needs help, scan their QR card.</Text>
           </View>
         ) : (
           <>
@@ -71,23 +71,20 @@ const recentIncidents = useMemo(
             <View style={[styles.alertCard, styles.alertCardActive]}>
               <View style={styles.alertCardTextWrap}>
                 <Text style={[styles.alertCardTitle, statusStyle(currentAssignment.status)]}>
-                  {currentAssignment.status === 'escalated' ? 'Alert Escalated'
-                    : currentAssignment.status === 'closed' ? 'Alert Closed'
-                    : currentAssignment.status === 'pending' ? 'Alert Pending'
-                    : 'Open Alert'}
+                  {alertStageLabel(currentAssignment.status)}
                 </Text>
                 <Text style={styles.alertTime}>{currentAssignment.scannedAt}</Text>
               </View>
 
               <Text style={styles.heading1}>{currentAssignment.residentName}</Text>
               <Text style={styles.typeText}>{currentAssignment.residentType}</Text>
-              <Text style={styles.alertSubtitle}>Scanned by {currentAssignment.scannedBy || 'a Bystander'}</Text>
+              <Text style={styles.alertSubtitle}>Reported by {currentAssignment.scannedBy}</Text>
 
               {currentAssignment.location ? (
                 <View style={styles.locationBox}>
                   <FontAwesome5 name="map-marker-alt" size={14} color={colors.primary} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.locationLabel}>QR scanned at</Text>
+                    <Text style={styles.locationLabel}>Reported location</Text>
                     <Text style={styles.locationText}>{currentAssignment.location}</Text>
                   </View>
                 </View>
@@ -99,12 +96,12 @@ const recentIncidents = useMemo(
 
               <View style={styles.statusRow}>
                 <Text style={[styles.statusText, currentAssignment.guardianStatus === 'Not Safe' ? styles.notSafe : currentAssignment.guardianStatus === 'Safe' ? styles.safe : styles.waiting]}>Guardian: {'\n'}{currentAssignment.guardianStatus}</Text>
-                <Text style={[styles.statusText, currentAssignment.responderStatus === 'Not Safe' ? styles.notSafe : currentAssignment.responderStatus === 'Safe' ? styles.safe : styles.waiting]}>Responder: {'\n'}{currentAssignment.responderStatus !== 'Pending' ? currentAssignment.responderStatus: currentAssignment.responderName ? 'Assigned': 'Waiting'}</Text>
+                <Text style={[styles.statusText, currentAssignment.responderStatus === 'Not Safe' ? styles.notSafe : currentAssignment.responderStatus === 'Safe' ? styles.safe : styles.waiting]}>Responder: {'\n'}{currentAssignment.responderStatus !== 'Waiting' ? currentAssignment.responderStatus: currentAssignment.responderName ? 'Assigned': 'Waiting'}</Text>
               </View>
 
               {currentAssignment.assignment_status === 'pending_acceptance' && respondToAssignment ? (
                 <>
-                  <Text style={styles.actionLabel}>Accept the assignment before recording safety observations or submitting a report.</Text>
+                  <Text style={styles.actionLabel}>Accept the assignment before reporting observations or submitting a report.</Text>
                   <View style={styles.buttonWrap}>
                     <TouchableOpacity style={[styles.button, styles.buttonSafe, responding && styles.buttonDisabled]} disabled={responding}
                       accessibilityRole="button" onPress={() => respond('accepted')}>
@@ -116,7 +113,7 @@ const recentIncidents = useMemo(
                     </TouchableOpacity>
                   </View>
                 </>
-              ) : currentAssignment.status !== 'closed' && (
+              ) : currentAssignment.status !== 'closed' && currentAssignment.assignment_status === 'accepted' && (
                 <View style={styles.buttonWrap}>
                   {['Safe', 'Not Safe'].map((decision) => {
                     const recorded = currentAssignment.responderStatus === decision;
@@ -130,7 +127,7 @@ const recentIncidents = useMemo(
                           resident: { name: currentAssignment.residentName, id: currentAssignment.residentId },
                         })}
                       >
-                        <Text style={[styles.buttonText, decision === 'Safe' ? styles.safeText : styles.notSafeText]}>{recorded ? `${decision} recorded` : `Mark ${decision}`}</Text>
+                        <Text style={[styles.buttonText, decision === 'Safe' ? styles.safeText : styles.notSafeText]}>{recorded ? `${decision} recorded` : `Report ${decision}`}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -141,7 +138,7 @@ const recentIncidents = useMemo(
                 onCancel={() => setDeclinePrompt(false)} onSubmit={(reason) => respond('declined', reason)} />
 
               <TouchableOpacity style={styles.detailsButton} onPress={() => navigation.navigate('AlertDetails', { alertId: currentAssignment.id })}>
-                <Text style={styles.detailsText}>Tap for Full Details</Text>
+                <Text style={styles.detailsText}>View Assistance Details</Text>
                 <FontAwesome5 name="caret-right" size={18} color={colors.primary} />
               </TouchableOpacity>
             </View>
@@ -150,12 +147,12 @@ const recentIncidents = useMemo(
 
         <View style={styles.divider} />
         <View style={styles.headerRow}>
-          <Text style={styles.sectionTitle}>Recent Incidents</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('AuditLogScreen')}><Text style={styles.viewAll}>View All ›</Text></TouchableOpacity>
+          <Text style={styles.sectionTitle}>Recent History</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('IncidentScreen')}><Text style={styles.viewAll}>View All ›</Text></TouchableOpacity>
         </View>
 
         {recentIncidents.length === 0 ? (
-          <Text style={styles.emptyListText}>No recent incidents yet.</Text>
+          <Text style={styles.emptyListText}>No closed cases yet.</Text>
         ) : (
           <View style={[styles.headCard, styles.shadow]}>
             {recentIncidents.map((incident, index) => (
@@ -183,10 +180,7 @@ const recentIncidents = useMemo(
                       {incident.residentType} • {incident.location}
                     </Text>
                     <Text style={styles.activityDetail}>
-                      {incident.status === 'closed' ? 'Resolved'
-                        : incident.status === 'escalated' ? 'Escalated'
-                        : incident.status === 'pending' ? 'Pending confirmation'
-                        : 'Awaiting responder'}
+                      {alertStageLabel(incident.status)}
                     </Text>
                   </View>
                 </TouchableOpacity>

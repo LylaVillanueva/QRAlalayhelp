@@ -25,7 +25,7 @@ export default function ResidentScreen({ navigation }) {
 
   const filteredResidents = useMemo(() => residents.filter((resident) => {
     if (STAFF_TYPES.includes(resident.type)) return false;
-    const matchesSearch = `${resident.name} ${resident.code || ''}`.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = `${resident.name} ${resident.address || ''}`.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = activeFilter === 'all' || resident.type === activeFilter;
     return matchesSearch && matchesType;
   }), [residents, searchQuery, activeFilter]);
@@ -35,10 +35,6 @@ export default function ResidentScreen({ navigation }) {
       <View style={styles.content}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>Residents</Text>
-          <TouchableOpacity style={styles.manageButton} onPress={() => navigation.navigate('ManageUsers')}>
-            <FontAwesome5 name="users" size={13} color={colors.primary} />
-            <Text style={styles.manageText}>Manage Users</Text>
-          </TouchableOpacity>
         </View>
         <View style={styles.divider} />
 
@@ -46,7 +42,7 @@ export default function ResidentScreen({ navigation }) {
           <FontAwesome5 name="search" size={18} color={colors.primary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by name or ID"
+            placeholder="Search by name or address"
             placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -77,7 +73,7 @@ export default function ResidentScreen({ navigation }) {
             <View style={styles.residentTextWrap}>
               <Text style={styles.residentName}>{resident.name}</Text>
               <Text style={styles.residentType}>{resident.type || 'Resident'}</Text>
-              <Text style={styles.residentMeta}>{resident.code || 'No card number yet'}</Text>
+              {resident.address ? <Text style={styles.residentMeta} numberOfLines={1}>{resident.address}</Text> : null}
             </View>
             <FontAwesome5 name="chevron-right" size={13} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -87,7 +83,7 @@ export default function ResidentScreen({ navigation }) {
           <View style={styles.emptyWrap}>
             <FontAwesome5 name="user-slash" size={38} color={colors.textMuted} />
             <Text style={styles.emptyTitle}>No residents found</Text>
-            <Text style={styles.emptyText}>Try another name, ID, or resident type.</Text>
+            <Text style={styles.emptyText}>Try another name, address, or resident type.</Text>
           </View>
         )}
       </ScrollView>
@@ -95,7 +91,7 @@ export default function ResidentScreen({ navigation }) {
       <View style={styles.buttonContent}>
         <TouchableOpacity style={styles.enrollButton} onPress={() => navigation.navigate('EnrollNewResident')}>
           <FontAwesome5 name="user-plus" size={14} color={colors.primary} style={{ marginTop: -4 }}  />
-          <Text style={styles.enrollButtonText}> Enroll New Resident</Text>
+          <Text style={styles.enrollButtonText}> Register Resident</Text>
         </TouchableOpacity>
       </View>
 

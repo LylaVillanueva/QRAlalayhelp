@@ -13,12 +13,15 @@ import { useAppData } from "../../contexts/AppDataContext";
 import { StatusBadge } from "../../components/ui";
 
 export default function ProfileScreen({ route, navigation }) {
-  const { resident, setResident, alerts, loading, error } = useResidentProfile(route);
+  const { resident, alerts, loading, error } = useResidentProfile(route);
+  const { alerts: myCases, account } = useAppData();
 
-  const scanHistory = useMemo(
-    () => (resident ? alerts.filter((alert) => alert.residentId === resident.id) : []),
-    [alerts, resident]
-  );
+  // Only cases this responder was assigned to, even though the server returns
+  // the resident's whole history to any responder ever assigned to them.
+  const scanHistory = useMemo(() => {
+    const mine = new Set(myCases.filter((item) => item.responderId === account.id).map((item) => item.id));
+    return resident ? alerts.filter((alert) => mine.has(alert.id)) : [];
+  }, [alerts, resident, myCases, account.id]);
 
   if (loading || error || !resident) return <ScreenState loading={loading} error={error} onBack={() => navigation.goBack()} />;
   return (
@@ -30,22 +33,19 @@ export default function ProfileScreen({ route, navigation }) {
           <Avatar uri={resident?.photoUrl} name={resident?.name} style={styles.profilePhoto} />
           <View style={styles.profileTextWrap}>
             <Text style={styles.name}>{resident?.name || 'Resident'}</Text>
-            <Text style={styles.meta}>{resident?.id || 'ID: Not available'}</Text>
+            {resident?.address ? <Text style={styles.meta}>{resident.address}</Text> : null}
+            <Text style={styles.meta}>{resident?.guardianName ? `Guardian: ${resident.guardianName}${resident.relationship ? ` (${resident.relationship})` : ''}${resident.guardianContact ? ` · ${resident.guardianContact}` : ''}` : 'No verified guardian'}</Text>
             <Text style={styles.meta}>{resident?.type || 'Type: Not available'}</Text>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.qrButton} onPress={() => Alert.alert('Official QR card', 'Ask your barangay official for the resident’s issued QR card.')}>
-          <Text style={styles.qrButtonText}>View QR Code</Text>
-        </TouchableOpacity>
-
         <View style={styles.divider} />
-        <Text style={styles.heading1}>Scan History</Text>
+        <Text style={styles.heading1}>Your Cases for This Resident</Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {scanHistory.length === 0 ? (
-          <Text style={styles.emptyText}>No scan or alert history yet for this resident.</Text>
+          <Text style={styles.emptyText}>No cases yet.</Text>
         ) : (
           scanHistory.map((alert) => (
             <TouchableOpacity key={alert.id} style={styles.alertCard} onPress={() => navigation.navigate('AlertDetails', { alertId: alert.id })}>
@@ -56,8 +56,8 @@ export default function ProfileScreen({ route, navigation }) {
                 />
                 <Text style={styles.alertTime}>{alert.scannedAt}</Text>
               </View>
-              <Text style={[styles.alertSubtitle, { fontFamily: 'Poppins_600SemiBold' }]}>Scanned by {alert.scannedBy || 'A Bystander'}</Text>
-              <Text style={styles.alertSubtitle}>{alert.status === 'closed' ? 'Resolved - both parties confirmed safe' : `Guardian: ${alert.guardianStatus} • Responder: ${alert.responderStatus}`}</Text>
+              <Text style={[styles.alertSubtitle, { fontFamily: 'Poppins_600SemiBold' }]}>{alert.location}</Text>
+              <Text style={styles.alertSubtitle}>{alert.status === 'closed' ? 'Closed by a barangay official' : `Guardian: ${alert.guardianStatus} • Responder: ${alert.responderStatus}`}</Text>
             </TouchableOpacity>
           ))
         )}

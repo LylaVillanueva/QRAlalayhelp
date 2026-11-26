@@ -1,60 +1,40 @@
 import { typography, spacing, colors } from "../../constants/theme";
 import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import Text from "../../components/AppText";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { notificationPermissions } from "../../services/notifications";
 import { registerDeviceForPush } from "../../services/pushRegistration";
-import * as Location from 'expo-location';
+import { PRIVACY_POLICY } from "../../constants/legalContent";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAccessibilitySettings } from "../../contexts/AccessibilitySettingsContext";
 
-export const PERMISSIONS_ACCEPTED_KEY = notificationPermissions.supported
-  ? 'resqr.permissionsAccepted' : 'resqr.permissionsAccepted.preview';
+// Stored once the user accepts the privacy and data terms. Device
+// permissions are no longer required here: location is requested when an
+// assistance request is sent, the camera when scanning, and notifications
+// are offered once after agreeing (declining never blocks the app).
+export const PERMISSIONS_ACCEPTED_KEY = 'qralalay.privacyAccepted';
+
+const SUMMARY = ['What we collect', 'How it’s used', 'What an anonymous scanner sees', 'Your rights'];
 
 export default function PermissionScreen({ onAgree, onBack }) {
   const { t } = useAccessibilitySettings();
-  const [pushChecked, setPushChecked] = useState(false);
-  const [locationChecked, setLocationChecked] = useState(false);
   const [privacyChecked, setPrivacyChecked] = useState(false);
+  const [termsChecked, setTermsChecked] = useState(false);
   const [requesting, setRequesting] = useState(false);
-
-  const allChecked = (!notificationPermissions.supported || pushChecked) && locationChecked && privacyChecked;
+  const allChecked = privacyChecked && termsChecked;
 
   async function handleContinue() {
     if (!allChecked || requesting) return;
     setRequesting(true);
     try {
-      const notifResult = await notificationPermissions.request();
-      if (notifResult.supported && !notifResult.granted) {
-        Alert.alert(
-          'Notifications required',
-          'Notifications are required for this app to function — you need them to receive emergency alerts. Please enable them in your device settings to continue.',
-          [
-            { text: 'Open Settings', onPress: () => Linking.openSettings() },
-            { text: 'Cancel', style: 'cancel' },
-          ]
-        );
-        return;
-      }
-      if (notifResult.granted) {
-        registerDeviceForPush(); // fire-and-forget — see pushRegistration.js
-      }
-
-      // Location is only used at the moment a QR code is scanned — a
-      // denial here doesn't block the app, unlike notifications above.
-      const locationResult = await Location.requestForegroundPermissionsAsync();
-      if (!locationResult.granted) {
-        Alert.alert(
-          'Location not enabled',
-          "You can still use the app, but the resident's location won't be recorded when a QR code is scanned. You can enable this later in your device settings."
-        );
-      }
-
       await AsyncStorage.setItem(PERMISSIONS_ACCEPTED_KEY, 'true');
+      // Optional: assistance updates arrive as notifications when allowed.
+      const notifResult = await notificationPermissions.request();
+      if (notifResult.granted) registerDeviceForPush();
       onAgree?.();
     } catch (err) {
-      Alert.alert('Could not update permissions', err.message || 'Please try again.');
+      Alert.alert('Could not continue', err.message || 'Please try again.');
     } finally {
       setRequesting(false);
     }
@@ -69,20 +49,26 @@ export default function PermissionScreen({ onAgree, onBack }) {
         <Text style={styles.heading}>{t('permission')}</Text>
         <Text style={styles.subheading}>{t('requireBeforeContinuing')}</Text>
 
-        {notificationPermissions.supported ? <CheckboxRow
-          checked={pushChecked}
-          onPress={() => setPushChecked((v) => !v)}
-          label="Allow push notification for emergency alerts and scan activity"
-        /> : <Text style={styles.footnote}>Remote push notifications are unavailable in this preview. You can continue and view alerts inside the app.</Text>}
-        <CheckboxRow
-          checked={locationChecked}
-          onPress={() => setLocationChecked((v) => !v)}
-          label="Allow location access when scanning QR codes"
-        />
+        {PRIVACY_POLICY.filter((section) => SUMMARY.includes(section.heading)).map((section) => (
+          <View key={section.heading} style={styles.summary}>
+            <Text style={styles.summaryHeading}>{section.heading}</Text>
+            <Text style={styles.summaryBody}>{section.body}</Text>
+          </View>
+        ))}
+        <View style={styles.summary}>
+          <Text style={styles.summaryHeading}>Not a replacement for emergency services</Text>
+          <Text style={styles.summaryBody}>QRAlalay sends assistance requests to your barangay. For immediate danger, call 911.</Text>
+        </View>
+
         <CheckboxRow
           checked={privacyChecked}
           onPress={() => setPrivacyChecked((v) => !v)}
-          label="I agree to privacy policy and personal data collection terms"
+          label="I have read how QRAlalay collects and uses personal data"
+        />
+        <CheckboxRow
+          checked={termsChecked}
+          onPress={() => setTermsChecked((v) => !v)}
+          label="I agree to the QRAlalay terms of use"
         />
       </ScrollView>
 
@@ -91,10 +77,11 @@ export default function PermissionScreen({ onAgree, onBack }) {
           style={[styles.button, !allChecked && styles.buttonDisabled]}
           onPress={handleContinue}
           disabled={!allChecked || requesting}
+          accessibilityRole="button"
         >
           <Text style={styles.buttonText}>{requesting ? t('requesting') : t('agreeContinue')}</Text>
         </TouchableOpacity>
-        <Text style={styles.footnote}>{notificationPermissions.supported ? 'Enable notifications to receive emergency alerts.' : 'Remote push notifications require an installed development or production build.'}</Text>
+        <Text style={styles.footnote}>Camera, location and notification access are asked only when a feature needs them.</Text>
       </View>
     </SafeAreaView>
   );
@@ -118,7 +105,10 @@ const styles = StyleSheet.create({
   heading: { fontSize: typography.title, fontFamily: 'Poppins_700Bold', marginBottom: 8 },
   subheading: { fontSize: typography.body, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, marginBottom: 28 },
 
-  row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 28 },
+  summary: { marginBottom: 16 },
+  summaryHeading: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold', color: colors.textPrimary, marginBottom: 4 },
+  summaryBody: { fontSize: typography.detail, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, lineHeight: Math.ceil(typography.detail * 1.5) },
+  row: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 8, marginBottom: 20 },
   checkbox: {
     width: 32,
     height: 32,

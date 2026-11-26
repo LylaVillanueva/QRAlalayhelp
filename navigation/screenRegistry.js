@@ -18,17 +18,14 @@ import GuardianAlertScreen from '../screens/guardian/AlertScreen';
 import GuardianSettingsScreen from '../screens/guardian/SettingsScreen';
 import GuardianScannerScreen from '../screens/shared/ScannerScreen';
 import GuardianProfileScreen from '../screens/guardian/ProfileScreen';
-import GuardianAuditLogScreen from '../screens/guardian/AuditLogScreen';
 import GuardianConfirmationScreen from '../screens/guardian/ConfirmationScreen';
 import GuardianAlertDetails from '../screens/guardian/AlertDetails';
 import GuardianEmergencyHelpScreen from '../screens/guardian/EmergencyHelpScreen';
 import ResponderHomeScreen from '../screens/responder/HomeScreen';
-import ResponderResidentScreen from '../screens/responder/ResidentScreen';
 import ResponderAlertScreen from '../screens/responder/AlertScreen';
 import ResponderSettingsScreen from '../screens/responder/SettingsScreen';
 import ResponderScannerScreen from '../screens/shared/ScannerScreen';
 import ResponderProfileScreen from '../screens/responder/ProfileScreen';
-import ResponderAuditLogScreen from '../screens/responder/AuditLogScreen';
 import ResponderConfirmationScreen from '../screens/responder/ConfirmationScreen';
 import ResponderAlertDetails from '../screens/responder/AlertDetails';
 import ResponderIncidentScreen from '../screens/responder/IncidentScreen';
@@ -62,7 +59,6 @@ export const roleScreens = {
   SettingsScreen: GuardianSettingsScreen,
   ScannerScreen: GuardianScannerScreen,
   ProfileScreen: GuardianProfileScreen,
-  AuditLogScreen: GuardianAuditLogScreen,
   ConfirmationScreen: GuardianConfirmationScreen,
   AlertDetails: GuardianAlertDetails,
   EmergencyHelp: GuardianEmergencyHelpScreen,
@@ -71,12 +67,10 @@ export const roleScreens = {
   },
   barangay_responder: {
   Home: ResponderHomeScreen,
-  ResidentScreen: ResponderResidentScreen,
   AlertScreen: ResponderAlertScreen,
   SettingsScreen: ResponderSettingsScreen,
   ScannerScreen: ResponderScannerScreen,
   ProfileScreen: ResponderProfileScreen,
-  AuditLogScreen: ResponderAuditLogScreen,
   ConfirmationScreen: ResponderConfirmationScreen,
   AlertDetails: ResponderAlertDetails,
   IncidentScreen: ResponderIncidentScreen,

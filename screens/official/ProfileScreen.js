@@ -207,11 +207,7 @@ export default function ProfileScreen({ route, navigation }) {
           <View style={styles.qrBox}>
             <QRCode value={qrData.publicScanUrl} size={240} getRef={(node) => { qrRef.current = node; }} />
             <Text style={styles.qrName}>{resident.name}</Text>
-            <InfoRow label="ID Number" value={resident.code || resident.id} />
             <InfoRow label="Type" value={resident.type} />
-            <InfoRow label="Guardian Name" value={resident.guardianName || 'Not registered'} />
-            <InfoRow label="Guardian Contact" value={resident.guardianContact || 'No guardian contact'} />
-            <InfoRow label="Address" value={resident.address} />
           </View>
           <TouchableOpacity style={styles.primaryButton} disabled={qrBusy} onPress={saveQrCard}>
             <Text style={styles.primaryButtonText}>{qrBusy ? 'Please wait…' : 'Save / Share QR Card'}</Text>
@@ -242,7 +238,6 @@ export default function ProfileScreen({ route, navigation }) {
           <View style={{ flex: 1, margin: 0 }}>
             <Text style={styles.contextTitle}>{resident.name}</Text>
             <Text style={styles.small}>Type: {resident.type || 'Resident'}</Text>
-            <Text style={styles.small}>ID Number: {resident.code || resident.id}</Text>
             {!qrStatus.unavailable && (
               <Text style={[styles.cardPill, activeCard ? styles.verified : styles.pending]}>
                 {activeCard ? 'QR card active' : 'No active QR card'}
@@ -321,10 +316,10 @@ export default function ProfileScreen({ route, navigation }) {
           <Text style={styles.historyMeta}>{verifiedLinks.length} verified guardians are linked; the primary one is shown above.</Text>
         )}
 
-        <Text style={styles.section}>Alert History</Text>
+        <Text style={styles.section}>Assistance History</Text>
         <View style={styles.card}>
           {residentAlerts.length === 0 ? (
-            <Text style={styles.emptyText}>No alert history available.</Text>
+            <Text style={styles.emptyText}>No assistance requests yet.</Text>
           ) : residentAlerts.map((alert, index) => (
             <React.Fragment key={alert.id}>
               <TouchableOpacity
@@ -339,7 +334,7 @@ export default function ProfileScreen({ route, navigation }) {
                     </Text>
                     <Text style={styles.historyTime}>{alert.scannedAt}</Text>
                   </View>
-                  <Text style={styles.historyMeta}>QR scanned by {alert.scannedBy || 'a bystander'}</Text>
+                  <Text style={styles.historyMeta}>Reported by {alert.scannedBy}</Text>
                   <Text style={styles.historyMeta}>{alert.location || 'Location unavailable'}</Text>
                 </View>
                 <FontAwesome5 name="chevron-right" size={11} color={colors.textMuted} />

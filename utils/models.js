@@ -8,12 +8,15 @@ export function mapResident(row) {
     relationship: row.guardian_relationship || '' };
 }
 
-export function mapUser(row, role, residents, barangay) {
+// `wardIds` overrides the guardian_id lookup. Signed-in guardians pass every
+// resident the server returned, because the server only returns their
+// verified wards (guardian_id names only the most recently verified one).
+export function mapUser(row, role, residents, barangay, wardIds = null) {
   return { id: row.id, name: row.fullName || row.full_name, phone: row.phoneNumber || row.phone_number || '',
     role: ROLE_LABELS[role] || role, position: row.position || '', email: row.email || '', barangay: row.barangay_name || row.barangayName || barangay || 'Not available',
     address: row.home_address || row.homeAddress || '', photoUrl: row.photo_url || row.photoUrl || null,
     status: row.is_active === false ? 'Inactive' : row.is_active === true ? 'Active' : 'Not available',
-    wardIds: role === 'guardian' ? (row.ward_ids || residents.filter((r) => r.guardianId === row.id).map((r) => r.id)) : [] };
+    wardIds: role === 'guardian' ? (wardIds || row.ward_ids || residents.filter((r) => r.guardianId === row.id).map((r) => r.id)) : [] };
 }
 
 export function incidentStatus(row) {
@@ -26,14 +29,14 @@ export function incidentStatus(row) {
 // Every alert is in exactly one stage, and every screen uses these labels,
 // so "New", "In progress", "Escalated" and "Closed" never overlap.
 export const ALERT_STAGES = {
-  open: { label: 'New', description: 'No responder assigned yet' },
-  pending: { label: 'In progress', description: 'Responder assigned; waiting for Safe confirmations' },
-  escalated: { label: 'Escalated', description: 'Overdue, reported Not Safe, or reported by several people' },
-  closed: { label: 'Closed', description: 'Resolved, closed or cancelled' },
+  open: { label: 'New Request', description: 'Request received and awaiting action' },
+  pending: { label: 'In Progress', description: 'Assistance is being coordinated' },
+  escalated: { label: 'Escalated', description: 'Requires additional attention' },
+  closed: { label: 'Closed', description: 'An official completed the case review' },
 };
 
 export const ALERT_FILTERS = [
-  { key: 'all', label: 'All', description: 'Every alert' },
+  { key: 'all', label: 'All', description: 'All assistance requests' },
   ...Object.entries(ALERT_STAGES).map(([key, stage]) => ({ key, ...stage })),
 ];
 
@@ -44,8 +47,8 @@ export function alertStageLabel(status) {
 // Shortcuts the Home screens link to. They aren't filter chips (they'd
 // overlap the stages); the alert list just explains what it's showing.
 const ALERT_SHORTCUTS = {
-  active: { description: 'Ongoing alerts: New, In progress and Escalated', matches: (alert) => alert.status !== 'closed' },
-  unassigned: { description: 'Ongoing alerts still waiting for a responder', matches: (alert) => alert.status !== 'closed' && !alert.responderId },
+  active: { description: 'Open requests: New Request, In Progress and Escalated', matches: (alert) => alert.status !== 'closed' },
+  unassigned: { description: 'Open requests still waiting for a responder', matches: (alert) => alert.status !== 'closed' && !alert.responderId },
 };
 
 export function matchesAlertFilter(alert, key) {
@@ -58,7 +61,8 @@ export function alertFilterDescription(key) {
   return ALERT_SHORTCUTS[key]?.description || ALERT_FILTERS.find((filter) => filter.key === key)?.description || ALERT_FILTERS[0].description;
 }
 
-function decisionLabel(value) { return value === 'safe' ? 'Safe' : value === 'not_safe' ? 'Not Safe' : 'Waiting'; }
+// Safety observations, not case outcomes. 'Waiting' means no observation yet.
+function decisionLabel(value) { return value === 'safe' ? 'Safe' : value === 'not_safe' ? 'Not Safe' : value === 'unable_to_verify' ? 'Unable to verify' : 'Waiting'; }
 
 function liveLocationNote(row) {
   const updated = row.live_location_updated_at ? new Date(row.live_location_updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
@@ -114,7 +118,8 @@ export function mapIncident(row, residents = [], users = []) {
     responderUnreachableReason: row.responder_unreachable_reason || '',
     cancelledReason: row.cancelled_reason || '',
     scannedAt: row.created_at ? new Date(row.created_at).toLocaleString() : '',
-    scannedBy: row.qr_token ? 'A Bystander' : 'An authorized user',
+    // Every assistance case starts from a public QR card scan.
+    scannedBy: 'Public bystander (QR card)',
     location: readableLocation(row.scan_address, row.scan_latitude, row.scan_longitude, row.created_at) || 'Location unavailable',
     liveAddress: hasLiveLocation ? readableLocation(row.live_address, row.live_latitude, row.live_longitude, row.live_location_updated_at) : '',
     reportCount: row.report_count || 1,
@@ -127,20 +132,35 @@ export function mapIncident(row, residents = [], users = []) {
   };
 }
 
+// Supabase audit rows: { audit_id, actor_id, actor_name, action, target_type,
+// target_id, result, created_at }. Legacy rows used entity_* and metadata.
+const CASE_TARGETS = ['assistance_case', 'incident'];
+const RESIDENT_TARGETS = ['resident', 'guardian_link', 'qr_card'];
+const USER_TARGETS = ['profile', 'user'];
+
 export function mapAuditLog(row, users = [], residents = [], incidents = []) {
+  const targetType = row.target_type || row.entity_type || '';
+  const targetId = row.target_id || row.entity_id || null;
   const actor = users.find((user) => user.id === row.actor_id);
-  const incident = incidents.find((item) => item.id === row.entity_id);
-  const residentId = row.entity_type === 'resident' ? row.entity_id : incident?.resident_id;
+  const incident = CASE_TARGETS.includes(targetType) ? incidents.find((item) => item.id === targetId) : null;
+  const residentId = targetType === 'resident' ? targetId : incident?.resident_id || null;
   const resident = residents.find((item) => item.id === residentId);
+  const targetUser = USER_TARGETS.includes(targetType) ? users.find((user) => user.id === targetId) : null;
   const action = row.action || '';
   const category = action.includes('closed') || action.includes('resolved') ? 'alertClosed'
-    : action.includes('escalat') ? 'alertEscalated' : action.includes('assign') ? 'assignment'
-    : row.entity_type === 'incident' ? 'alert' : row.entity_type === 'resident' ? 'resident'
-    : row.entity_type === 'user' ? 'user' : 'system';
-  return { ...row, category, title: action.replace(/[._]/g, ' '), residentId,
-    subject: resident?.name || row.entity_id || 'System',
-    detail: Object.entries(row.metadata || {}).map(([key, value]) => `${key}: ${String(value)}`).join(' • '),
-    actor: actor?.name || row.actor_id || 'System', actorRole: ROLE_LABELS[row.actor_role] || 'System',
+    : action.includes('escalat') ? 'alertEscalated'
+    : action.includes('assign') && CASE_TARGETS.includes(targetType) ? 'assignment'
+    : CASE_TARGETS.includes(targetType) ? 'alert'
+    : RESIDENT_TARGETS.includes(targetType) ? 'resident'
+    : USER_TARGETS.includes(targetType) ? 'user' : 'system';
+  const readable = action.replace(/[._]/g, ' ').trim();
+  const result = row.result && row.result !== 'success' ? row.result : '';
+  const metadata = Object.entries(row.metadata || {}).map(([key, value]) => `${key}: ${String(value)}`).join(' • ');
+  return { ...row, id: row.audit_id || row.id, category, residentId,
+    title: readable ? readable.charAt(0).toUpperCase() + readable.slice(1) : 'Activity',
+    subject: resident?.name || targetUser?.name || (targetType ? targetType.replace(/_/g, ' ') : 'System'),
+    detail: result || metadata,
+    actor: row.actor_name || actor?.name || 'System', actorRole: actor?.role || ROLE_LABELS[row.actor_role] || '',
     date: new Date(row.created_at).toLocaleDateString(), time: new Date(row.created_at).toLocaleTimeString(),
   };
 }

@@ -7,7 +7,7 @@ import { View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 're
 import Text from "../../components/AppText";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
-import TabBar from "../../components/tabs/TabButtons";
+import TabBar from "../../components/tabs/GuardianTabButtons";
 import InfoModal from "../../components/modals/InfoModal";
 import useNotificationPrefs from "../../hooks/useNotificationPrefs";
 import { Section, Divider, ToggleRow, LinkRow, InfoRow } from "../../components/ui";
@@ -40,8 +40,7 @@ export default function SettingsScreen({ navigation, setSession }) {
           <Avatar uri={myPhotoUrl} name={account.fullName} style={styles.residentPhoto} onChangePress={changeMyPhoto} />
           <View style={{ flex: 1, margin: 0 }}>
             <Text style={styles.contextTitle}>{account.fullName}</Text>
-            <Text style={styles.small}>Role: {account.role}</Text>
-            <Text style={styles.small}>ID Number: {account.id}</Text>
+            <Text style={styles.small}>Guardian • {account.barangayName}</Text>
           </View>
         </View>
 
@@ -50,26 +49,14 @@ export default function SettingsScreen({ navigation, setSession }) {
           <Divider />
           <InfoRow compact label={t('Mobile Number')} value={phone} />
           <Divider />
-          <InfoRow compact label={t('position')} value={'Barangay Secretary'} />
-          <Divider />
           <InfoRow compact label={t('barangay')} value={account.barangayName} />
           <Divider />
-          <InfoRow compact label={t('Wards Linked')} value={`${wards.length} ward${wards.length === 1 ? '' : 's'}`} />
+          <InfoRow compact label="Linked residents" value={`${wards.length}`} />
         </Section>
 
-        <Section compact title={t('notifications')}>
-          {pushSupported && <ToggleRow compact label={t('pushNotifications')} value={prefs.pushEnabled} onChange={setPushEnabled} />}
-          <Divider />
-          <ToggleRow compact label={t('emergencyAlertSound')} value={prefs.alertSound} onChange={(v) => set('alertSound', v)} />
-          <Divider />
-          <ToggleRow compact label="Emergency Alert Updates" value={prefs.alertUpdates} onChange={(v) => set('alertUpdates', v)} />
-          <Divider />
-          <ToggleRow compact label="Responder Confirmation Update" value={prefs.responderConfirmation} onChange={(v) => set('responderConfirmation', v)} />
-        </Section>
-
-        <Section compact title={t('userAccessManagement')}>
-          <LinkRow compact icon="users-cog" label={t('manageUsers')} onPress={() => navigation.navigate('ManageUsers')} />
-        </Section>
+        {pushSupported && <Section compact title={t('notifications')}>
+          <ToggleRow compact label={t('pushNotifications')} value={prefs.pushEnabled} onChange={setPushEnabled} />
+        </Section>}
 
         <Section compact title={t('accessibility')}>
           <LinkRow compact icon="language" label={t('language')} value={LANGUAGES.find((l) => l.key === languageKey)?.label} onPress={() => navigation.navigate('AccessibilityOptions', { type: 'language' })} />
@@ -80,11 +67,7 @@ export default function SettingsScreen({ navigation, setSession }) {
         </Section>
 
         <Section compact title={t('helpSupport')}>
-          <LinkRow compact icon="question-circle" label={t('faq')} onPress={() => info('FAQ', 'Frequently asked questions about using QRAlalay.')} />
-          <Divider />
           <LinkRow compact icon="phone" label={t('barangayContactNumber')} onPress={() => navigation.navigate('EmergencyHelp')} />
-          <Divider />
-          <LinkRow compact icon="bug" label={t('reportProblem')} onPress={() => info('Report a Problem', 'Please provide the issue you encountered.')} />
         </Section>
 
         <Section compact title={t('about')}>

@@ -7,22 +7,40 @@ import Text from "../../components/AppText";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useAppData } from "../../contexts/AppDataContext";
-import LiveLocationMap from "../../components/LiveLocationMap";
 import { Divider } from "../../components/ui";
 import ReasonPromptModal from "../../components/modals/ReasonPromptModal";
 import TabBar from "../../components/tabs/ResponderTabButtons";
 
 export default function AlertDetails({ route, navigation }) {
-  const { alerts, account, markGuardianUnreachable, markResponderUnreachable } = useAppData();
+  const { alerts, account, markGuardianUnreachable, markResponderUnreachable, respondToAssignment } = useAppData();
   const alert = alerts.find((item) => item.id === (route.params?.alertId || route.params?.incidentId));
   const [guardianModalVisible, setGuardianModalVisible] = useState(false);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [submittingGuardian, setSubmittingGuardian] = useState(false);
   const [submittingLocation, setSubmittingLocation] = useState(false);
+  const [declineVisible, setDeclineVisible] = useState(false);
+  const [responding, setResponding] = useState(false);
 
-  if (!alert) return <SafeAreaView style={styles.container}><Text onPress={() => navigation.goBack()}>‹ Back</Text><Text>Alert not found. Return to the alert list and refresh.</Text></SafeAreaView>;
+  if (!alert) return <SafeAreaView style={styles.container}><Text onPress={() => navigation.goBack()}>‹ Back</Text><Text>Request not found. Return to the list and refresh.</Text></SafeAreaView>;
 
   const isAssignedResponder = alert.responderId && account?.id === alert.responderId;
+  // Case actions are accepted by the server only after the responder accepts.
+  const awaitingAcceptance = isAssignedResponder && alert.status !== 'closed' && alert.assignment_status === 'pending_acceptance';
+  const hasAccepted = isAssignedResponder && alert.assignment_status === 'accepted';
+
+  const respond = async (decision, reason = null) => {
+    if (responding || !respondToAssignment) return;
+    setResponding(true);
+    try {
+      await respondToAssignment(alert.id, decision, reason);
+      setDeclineVisible(false);
+      if (decision === 'declined') navigation.navigate('Home');
+    } catch (error) {
+      Alert.alert('Could not update assignment', error.message);
+    } finally {
+      setResponding(false);
+    }
+  };
   const guardianPending = alert.status !== 'closed' && !alert.officialReviewRequired && alert.guardianStatus === 'Waiting';
 
   const submitGuardianUnreachable = async (reason) => {
@@ -49,7 +67,7 @@ export default function AlertDetails({ route, navigation }) {
     }
   };
 
-  const statusLabel = alert.status === 'open' ? 'Open Alert' : alert.status === 'pending' ? 'Pending Confirmation' : alert.status === 'escalated' ? 'Escalated' : 'Closed';
+  const statusLabel = alertStageLabel(alert.status);
   const statusStyle = alert.status === 'closed' ? styles.closed : alert.status === 'pending' ? styles.pending : styles.danger;
 
   return (
@@ -57,14 +75,15 @@ export default function AlertDetails({ route, navigation }) {
       <View style={styles.content}>
         <Text style={styles.back} onPress={() => navigation.goBack()}>‹ Back</Text>
         
-        <View style={[styles.residentCard, styles.shadow]}>
+        <TouchableOpacity style={[styles.residentCard, styles.shadow]} onPress={() => navigation.navigate('ProfileScreen', { residentId: alert.residentId })}
+          accessibilityRole="button" accessibilityLabel={`Resident information for ${alert.residentName}`} activeOpacity={0.8}>
           <Avatar uri={alert.residentPhotoUrl} name={alert.residentName} style={styles.residentPhoto} />
           <View style={{ flex: 1, margin: 0 }}>
             <Text style={styles.contextTitle}>{alert.residentName}</Text>
             <Text style={styles.small}>Type: {alert.residentType}</Text>
-            {alert.residentCode ? <Text style={styles.small}>Card: {alert.residentCode}</Text> : null}
+            <Text style={styles.small}>Tap for resident information ›</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.statusHeader}>
           <Text style={[styles.statusPill, statusStyle]}>{statusLabel}</Text>
@@ -74,7 +93,7 @@ export default function AlertDetails({ route, navigation }) {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.section}>Incident Location</Text>
+        <Text style={styles.section}>Reported Location</Text>
         <View style={styles.card}>
           <View style={styles.iconRow}>
             <FontAwesome5 name="map-marker-alt" size={18} color={colors.primary} />
@@ -83,16 +102,15 @@ export default function AlertDetails({ route, navigation }) {
                 {alert.liveLocationNote ? <Text style={styles.small}>{alert.liveLocationNote}</Text> : null}
               </View>
           </View>
-          {alert.mapLatitude != null && alert.mapLongitude != null && <TouchableOpacity style={styles.mapButton} onPress={async () => { if (alert.mapLatitude == null || alert.mapLongitude == null) { Alert.alert('Location unavailable', 'No coordinates were recorded for this incident.'); return; } 
+          {alert.mapLatitude != null && alert.mapLongitude != null && <TouchableOpacity style={styles.mapButton} onPress={async () => { if (alert.mapLatitude == null || alert.mapLongitude == null) { Alert.alert('Location unavailable', 'No location was shared with this request.'); return; } 
           try { await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${alert.mapLatitude},${alert.mapLongitude}`); } catch { Alert.alert('Could not open map'); } }}><Text style={styles.mapText}>View Location</Text></TouchableOpacity>}
-          <LiveLocationMap alert={alert} />
         </View>
         
-        <Text style={styles.section}>Scanned By</Text>
+        <Text style={styles.section}>Reported By</Text>
         <View style={styles.card}><View style={styles.iconRow}>
           <Image source={require("../../assets/profile.png")} style={styles.smallPhoto} />
           <View style={{ flex: 1 }}><Text style={styles.cardTitle}>{alert.scannedBy}</Text>
-            <Text style={styles.small}>QR scan initiated the alert</Text>
+            <Text style={styles.small}>Sent the request by scanning the resident's QR card</Text>
           </View>
         </View></View>
         
@@ -112,12 +130,23 @@ export default function AlertDetails({ route, navigation }) {
               ) : (
                 <>
                   <Text style={styles.cardTitle}>No responder assigned</Text>
-                  <Text style={styles.small}>This open alert is waiting for assignment.</Text>
+                  <Text style={styles.small}>This request is waiting for a responder.</Text>
                 </>
               )}
             </View>
           </View>
-          {isAssignedResponder && alert.status !== 'closed' && !alert.responderUnreachableReason && (
+          {awaitingAcceptance && (
+            <>
+              <Text style={[styles.small, { marginTop: 8 }]}>Accept this assignment before reporting observations or submitting a report.</Text>
+              <TouchableOpacity style={styles.summaryButton} disabled={responding} onPress={() => respond('accepted')} accessibilityRole="button">
+                <Text style={styles.summaryButtonText}>{responding ? 'Saving…' : 'Accept Assignment'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cantReachButton} disabled={responding} onPress={() => setDeclineVisible(true)} accessibilityRole="button">
+                <Text style={styles.cantReachText}>Decline Assignment</Text>
+              </TouchableOpacity>
+            </>
+          )}
+          {hasAccepted && alert.status !== 'closed' && !alert.responderUnreachableReason && (
             <TouchableOpacity style={styles.cantReachButton} onPress={() => setLocationModalVisible(true)}>
               <Text style={styles.cantReachText}>Can't Reach Location</Text>
             </TouchableOpacity>
@@ -125,7 +154,7 @@ export default function AlertDetails({ route, navigation }) {
           {alert.responderUnreachableReason ? <Text style={[styles.small, { marginTop: 8 }]}>Reported unable to reach location: {alert.responderUnreachableReason}</Text> : null}
         </View>
 
-        <Text style={styles.section}>Confirmation Status</Text>
+        <Text style={styles.section}>Safety Observations</Text>
         {alert.hasDiscrepancy && (
           <View style={styles.discrepancyCard}>
             <FontAwesome5 name="exclamation-triangle" size={16} color={colors.alertInk} />
@@ -142,7 +171,7 @@ export default function AlertDetails({ route, navigation }) {
           <Text style={styles.small}>Guardian: {alert.guardian_required === false ? 'Not registered' : alert.guardianName || 'Registered guardian'}</Text>
           {alert.guardianUnreachableReason ? <Text style={styles.small}>Unreachable{alert.guardianUnreachableBySystem ? ' (auto-flagged)' : ''}: {alert.guardianUnreachableReason}</Text> : null}
           {alert.guardian_contact_attempt_reason ? <Text style={styles.small}>Latest contact attempt: {alert.guardian_contact_attempt_reason}</Text> : null}
-          {isAssignedResponder && guardianPending && (
+          {hasAccepted && guardianPending && (
             <TouchableOpacity style={styles.cantReachButton} onPress={() => setGuardianModalVisible(true)}>
               <Text style={styles.cantReachText}>Document Guardian Contact Attempt</Text>
             </TouchableOpacity>
@@ -152,7 +181,7 @@ export default function AlertDetails({ route, navigation }) {
         {alert.status === 'escalated' && <View style={styles.escalationCard}>
           <FontAwesome5 name="exclamation-triangle" size={20} color={colors.alertInk} />
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.escalationTitle}>Alert Escalated</Text>
+            <Text style={styles.escalationTitle}>Request Escalated</Text>
             <Text style={styles.small}>{alert.escalationReason || 'Further response is required.'}</Text>
           </View></View>}
         
@@ -162,7 +191,7 @@ export default function AlertDetails({ route, navigation }) {
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.closedTitle}>Alert Closed</Text>
               <Text style={styles.small}>
-                {alert.cancelledReason ? 'Cancelled by the bystander who raised it — likely a false alarm.' : 'This incident is no longer active.'}
+                {alert.cancelledReason ? 'Cancelled by the bystander who raised it — likely a false alarm.' : 'This case is closed.'}
               </Text>
             </View>
           </View>
@@ -187,9 +216,19 @@ export default function AlertDetails({ route, navigation }) {
           onSubmit={submitLocationUnreachable}
         />
 
-        <TouchableOpacity style={styles.summaryButton} onPress={() => navigation.navigate('IncidentReportScreen', { alertId: alert.id, resident: { photoUrl: alert.residentPhotoUrl, name: alert.residentName, id: alert.residentId } })}>
-          <Text style={styles.summaryButtonText}>{alert.incidentReport ? 'View / Update Incident Summary' : 'Add Incident Summary Notes'}</Text>
-        </TouchableOpacity>
+        <ReasonPromptModal
+          visible={declineVisible}
+          title="Why are you declining this assignment?"
+          placeholder="Record why you cannot take this case"
+          confirmLabel="Decline Assignment"
+          submitting={responding}
+          onCancel={() => setDeclineVisible(false)}
+          onSubmit={(reason) => respond('declined', reason)}
+        />
+
+        {(hasAccepted || (isAssignedResponder && alert.incidentReport)) && <TouchableOpacity style={styles.summaryButton} onPress={() => navigation.navigate('IncidentReportScreen', { alertId: alert.id, resident: { photoUrl: alert.residentPhotoUrl, name: alert.residentName, id: alert.residentId } })}>
+          <Text style={styles.summaryButtonText}>{!hasAccepted ? 'View Assistance Report' : alert.incidentReport ? 'View / Update Assistance Report' : 'Submit Assistance Report'}</Text>
+        </TouchableOpacity>}
         
         {alert.officialReviewRequired && (
           <View style={styles.readOnlyNote}>

@@ -47,27 +47,20 @@ export default function SettingsScreen({ navigation, setSession }) {
           <View style={{ flex: 1, margin: 0 }}>
             <Text style={styles.contextTitle}>{account.fullName}</Text>
             <Text style={styles.small}>Barangay Responder • {account.barangayName}</Text>
-            <Text style={styles.small}>ID Number: {account.id}</Text>
           </View>
         </View>
 
         <Section compact title={t('accountInformation')} titleStyle={{ marginTop: 10 }}>
           <InfoRow label={t('name')} value={account.fullName} />
           <Divider />
-          <InfoRow label={t('position')} value="Barangay Responder" />
+          <InfoRow label={t('position')} value={account.position || 'Barangay Responder'} />
           <Divider />
           <InfoRow label={t('barangay')} value={account.barangayName} />
         </Section>
 
-        <Section compact title={t('notifications')}>
-          {pushSupported && <ToggleRow compact label={t('pushNotifications')} value={prefs.pushEnabled} onChange={setPushEnabled} />}
-          <Divider />
-          <ToggleRow compact label={t('emergencyAlertSound')} value={prefs.alertSound} onChange={(v) => set('alertSound', v)} />
-          <Divider />
-          <ToggleRow compact label="Responder Assignment Update" value={prefs.responderAssignment} onChange={(v) => set('responderAssignment', v)} />
-          <Divider />
-          <ToggleRow compact label="Escalated Alert Notification" value={prefs.escalatedAlert} onChange={(v) => set('escalatedAlert', v)} />
-        </Section>
+        {pushSupported && <Section compact title={t('notifications')}>
+          <ToggleRow compact label={t('pushNotifications')} value={prefs.pushEnabled} onChange={setPushEnabled} />
+        </Section>}
 
         <Section compact title={t('accessibility')}>
           <LinkRow compact icon="language" label={t('language')} value={LANGUAGES.find((l) => l.key === languageKey)?.label} onPress={() => navigation.navigate('AccessibilityOptions', { type: 'language' })} />
@@ -75,14 +68,6 @@ export default function SettingsScreen({ navigation, setSession }) {
           <LinkRow compact icon="font" label={t('font')} value={FONT_FAMILIES.find((f) => f.key === fontFamilyKey)?.label} onPress={() => navigation.navigate('AccessibilityOptions', { type: 'fontFamily' })} />
           <Divider />
           <LinkRow compact icon="text-height" label={t('fontSize')} value={FONT_SCALES.find((s) => s.key === fontScaleKey)?.label} onPress={() => navigation.navigate('AccessibilityOptions', { type: 'fontSize' })} />
-        </Section>
-
-        <Section compact title={t('helpSupport')}>
-          <LinkRow compact icon="question-circle" label={t('faq')} onPress={() => info('FAQ', 'Frequently asked questions about using QRAlalay.')} />
-          <Divider />
-          <LinkRow compact icon="phone" label={t('barangayContactNumber')} onPress={() => info('Barangay Contact', 'Ask your barangay office for its official contact number.')} />
-          <Divider />
-          <LinkRow compact icon="bug" label={t('reportProblem')} onPress={() => info('Report a Problem', 'Please provide the issue you encountered.')} />
         </Section>
 
         <Section compact title={t('about')}>

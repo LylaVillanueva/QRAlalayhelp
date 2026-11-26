@@ -67,36 +67,27 @@ export default function SettingsScreen({ navigation, setSession }) {
           <Avatar uri={myPhotoUrl} name={account.fullName} style={styles.residentPhoto} onChangePress={changeMyPhoto} />
           <View style={{ flex: 1, margin: 0 }}>
             <Text style={styles.contextTitle}>{account.fullName}</Text>
-            <Text style={styles.small}>Role: {account.role}</Text>
-            <Text style={styles.small}>ID Number: {account.id}</Text>
+            <Text style={styles.small}>Barangay Official • {account.barangayName}</Text>
           </View>
         </View>
 
         <Section compact title={t('accountInformation')} titleStyle={{ marginTop: 10 }}>
           <InfoRow compact label={t('name')} value={account.fullName} />
           <Divider />
-          <InfoRow compact label={t('position')} value={'Barangay Secretary'} />
+          <InfoRow compact label={t('position')} value={account.position || 'Not set'} />
           <Divider />
           <InfoRow compact label={t('barangay')} value={account.barangayName} />
         </Section>
 
-        <Section compact title={t('notifications')}>
-          {pushSupported && <ToggleRow compact label={t('pushNotifications')} value={prefs.pushEnabled} onChange={setPushEnabled} />}
-          <Divider />
-          <ToggleRow compact label={t('emergencyAlertSound')} value={prefs.alertSound} onChange={(v) => set('alertSound', v)} />
-          <Divider />
-          <ToggleRow compact label="New Emergency Alert" value={prefs.newAlert} onChange={(v) => set('newAlert', v)} />
-          <Divider />
-          <ToggleRow compact label="Responder Assignment Update" value={prefs.responderAssignment} onChange={(v) => set('responderAssignment', v)} />
-          <Divider />
-          <ToggleRow compact label="Escalated Alert Notification" value={prefs.escalatedAlert} onChange={(v) => set('escalatedAlert', v)} />
-        </Section>
+        {pushSupported && <Section compact title={t('notifications')}>
+          <ToggleRow compact label={t('pushNotifications')} value={prefs.pushEnabled} onChange={setPushEnabled} />
+        </Section>}
 
         <Section compact title={t('userAccessManagement')}>
           <LinkRow compact icon="users-cog" label={t('manageUsers')} onPress={() => navigation.navigate('ManageUsers')} />
         </Section>
 
-        {account.role === 'barangay_official' && <Section compact title="Barangay Emergency Contacts">
+        {account.role === 'barangay_official' && <Section compact title="Barangay Contact Numbers">
           <Text style={styles.contactHint}>Only confirmed active numbers appear to guardians and on public QR help pages. Editing a number requires confirmation again.</Text>
           {barangayContacts.map((contact, index) => <View key={contact.id}>
             {index > 0 && <Divider />}
@@ -126,14 +117,6 @@ export default function SettingsScreen({ navigation, setSession }) {
           <LinkRow compact icon="font" label={t('font')} value={FONT_FAMILIES.find((f) => f.key === fontFamilyKey)?.label} onPress={() => navigation.navigate('AccessibilityOptions', { type: 'fontFamily' })} />
           <Divider />
           <LinkRow compact icon="text-height" label={t('fontSize')} value={FONT_SCALES.find((s) => s.key === fontScaleKey)?.label} onPress={() => navigation.navigate('AccessibilityOptions', { type: 'fontSize' })} />
-        </Section>
-
-        <Section compact title={t('helpSupport')}>
-          <LinkRow compact icon="question-circle" label={t('faq')} onPress={() => info('FAQ', 'Frequently asked questions about using QRAlalay.')} />
-          <Divider />
-          <LinkRow compact icon="phone" label={t('barangayContactNumber')} onPress={() => info('Barangay Contact', 'Ask your barangay office for its official contact number.')} />
-          <Divider />
-          <LinkRow compact icon="bug" label={t('reportProblem')} onPress={() => info('Report a Problem', 'Please provide the issue you encountered.')} />
         </Section>
 
         <Section compact title={t('about')}>

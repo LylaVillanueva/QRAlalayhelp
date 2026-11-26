@@ -134,8 +134,22 @@ export default function EnrollNewResident({ navigation, session }) {
     if (guardianMode === 'existing' && (!selectedGuardianId || !form.relationship)) {
       Alert.alert('Existing guardian', 'Select a guardian and their relationship to the resident.'); return;
     }
-    if (guardianMode === 'new' && (!form.guardianName || !form.relationship || !form.guardianEmail)) {
+    if (guardianMode === 'new' && (!form.guardianName.trim() || !form.relationship || !form.guardianEmail)) {
       Alert.alert('New guardian', 'Enter the guardian name, relationship and email address. The invitation is sent by email.'); return;
+    }
+    if (guardianMode === 'new' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guardianEmail)) {
+      Alert.alert('New guardian', 'Enter a valid email address for the guardian.'); return;
+    }
+    if (guardianMode === 'new' && form.guardianContact && !/^9\d{9}$/.test(form.guardianContact)) {
+      Alert.alert('New guardian', 'Enter a 10-digit mobile number starting with 9, or leave it blank.'); return;
+    }
+    if (guardianMode === 'new') {
+      Alert.alert(
+        'Confirm guardian',
+        `Confirm that you have verified ${form.guardianName.trim()}'s identity and their relationship (${form.relationship}) to this resident. An invitation email will be sent; activate their account from Manage Users after they open it.`,
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Confirm', onPress: () => { void submitEnrollment(true); } }],
+      );
+      return;
     }
     if (guardianMode === 'existing') {
       const guardian = existingGuardians.find((item) => item.id === selectedGuardianId);
@@ -181,7 +195,7 @@ export default function EnrollNewResident({ navigation, session }) {
         setStep(3);
         Alert.alert('Resident saved', err.message);
       } else {
-        Alert.alert('Enrollment Failed', err.message);
+        Alert.alert('Registration failed', err.message);
       }
     } finally {
       setLoading(false);
@@ -255,7 +269,7 @@ export default function EnrollNewResident({ navigation, session }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.back} onPress={() => (step === 1 ? navigation.goBack() : setStep(1))}>‹ Back</Text>
-        <Text style={styles.heading}>ENROLL NEW RESIDENT</Text>
+        <Text style={styles.heading}>REGISTER RESIDENT</Text>
         <Text style={styles.subheading}>{step === 1 ? 'step 1 : Personal Information' : 'step 2 : Guardian Information'}</Text>
         <ProgressBar activeCount={step} />
       </View>
@@ -441,7 +455,7 @@ export default function EnrollNewResident({ navigation, session }) {
 
       <View style={styles.bottomBar}>
         <TouchableOpacity style={[styles.button, styles.shadow]} onPress={step === 1 ? handleNext : handleEnroll} disabled={loading}>
-          <Text style={styles.buttonText}>{step === 1 ? 'Next' : loading ? 'Enrolling...' : 'Enroll'}</Text>
+          <Text style={styles.buttonText}>{step === 1 ? 'Next' : loading ? 'Registering...' : 'Register'}</Text>
         </TouchableOpacity>
         <Text style={styles.pageLabel}>page {step}</Text>
       </View>

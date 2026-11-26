@@ -63,10 +63,10 @@ export default function LoginPortal({ setSession, onBack }) {
       setOtpSent(true);
       Alert.alert(
         'Check your email',
-        `If ${id} has a QRAlalay account, a 6-digit sign-in code has been sent to it.`
+        `If ${id} has a QRAlalay account, a 6-digit sign-in code has been sent to it. If no code arrives, ask your barangay office to confirm your account.`
       );
     } catch (err) {
-      Alert.alert('Unable to prepare code', err?.message || 'Network error');
+      Alert.alert('Unable to send code', err?.message || 'Check your internet connection and try again.');
     } finally {
       setLoading(false);
     }

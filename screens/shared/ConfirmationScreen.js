@@ -14,9 +14,9 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useAppData } from "../../contexts/AppDataContext";
 
 const SAFE_BULLETS = [
-  'This will be recorded as your confirmation.',
-  'The server updates the alert after the required safety confirmations.',
-  'You can still view the alert status in your alerts list.',
+  'This records your own observation that the resident is safe.',
+  'It does not close the request. A barangay official reviews all observations and the assistance report.',
+  'Report only what you have confirmed yourself.',
 ];
 
 export default function ConfirmationScreen({ route, navigation, role, notSafeBullets }) {
@@ -24,7 +24,6 @@ export default function ConfirmationScreen({ route, navigation, role, notSafeBul
   const resident = route.params?.resident || { name: route.params?.residentName || 'Resident', id: '' };
   const alertId = route.params?.alertId || route.params?.incidentId;
 
-  const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { alerts, updateAlertConfirmation } = useAppData();
   const alert = alerts.find((item) => item.id === alertId);
@@ -41,51 +40,22 @@ export default function ConfirmationScreen({ route, navigation, role, notSafeBul
     setSubmitting(true);
     try {
       await updateAlertConfirmation(alertId, role, status);
-      setConfirmed(true);
-    } catch (err) { Alert.alert('Could not submit confirmation', err.message); }
+      Alert.alert(isSafe ? 'Safe observation recorded' : 'Not Safe observation recorded',
+        isSafe ? 'A barangay official will review the request before it is closed.' : 'The barangay will see that the resident may still need help.');
+      navigation.navigate('AlertDetails', { alertId });
+    } catch (err) { Alert.alert('Could not record observation', err.message); }
     finally { setSubmitting(false); }
   }
 
   const bullets = isSafe ? SAFE_BULLETS : notSafeBullets;
 
-  if (confirmed) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContent}>
-          <View style={[styles.resultIconWrap, isSafe ? styles.resultIconSafe : styles.resultIconNotSafe]}>
-            <FontAwesome5 name={isSafe ? 'check' : 'exclamation'} size={55} color={colors.onPrimary} />
-          </View>
-
-          <Text style={styles.subheading}>{isSafe ? 'Marked as Safe' : 'Alert Escalated'}</Text>
-          <Text style={styles.subheading2}>{isSafe ? (alert?.officialReviewRequired ? 'Safe confirmation saved. Submit your report next; a barangay official must review and close this alert.' : 'Your confirmation has been submitted.') : 'Barangay has been notified as high priority.'}</Text>
-
-          <View style={styles.residentCard}>
-            <Avatar uri={currentResident.photoUrl} name={currentResident.name} style={styles.residentPhoto} />
-            <View style={styles.residentTextWrap}>
-              <Text style={styles.residentName}>{currentResident.name}</Text>
-              <Text style={styles.residentMeta}>ID: {currentResident.id}</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity style={[styles.button, styles.blueButton, { marginBottom: 8 }]} onPress={() => navigation.navigate('AlertDetails', { alertId })}>
-            <Text style={[styles.buttonText, styles.blueText]}>View Alert Status</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Home')}>
-            <Text style={styles.buttonText}>Back to Home</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.heading1}>Are you sure you want to mark this resident as {isSafe ? 'safe' : 'Not Safe'}?</Text>
+        <Text style={styles.heading1}>Report your observation: is this resident {isSafe ? 'safe' : 'not safe'}?</Text>
 
         <Avatar uri={currentResident.photoUrl} name={currentResident.name} style={styles.profilePhoto} />
         <Text style={styles.subheading}>{currentResident.name}</Text>
-        <Text style={styles.subheading1}>ID: {currentResident.id}</Text>
 
         <View style={styles.bulletBox}>
           {bullets.map((line, i) => (
@@ -99,7 +69,7 @@ export default function ConfirmationScreen({ route, navigation, role, notSafeBul
 
       <View style={styles.bottomBar}>
         <TouchableOpacity style={[styles.confirmButton, isSafe ? styles.confirmButtonSafe : styles.confirmButtonNotSafe]} disabled={submitting} onPress={handleConfirm}>
-          <Text style={[styles.confirmButtonText, isSafe ? styles.safeText : styles.notSafeText]}>{isSafe ? 'Confirm Safe' : 'Confirm Not Safe'}</Text>
+          <Text style={[styles.confirmButtonText, isSafe ? styles.safeText : styles.notSafeText]}>{isSafe ? 'Report Safe' : 'Report Not Safe'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
           <Text style={styles.buttonText}>Cancel</Text>

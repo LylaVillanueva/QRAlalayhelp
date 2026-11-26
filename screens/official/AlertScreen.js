@@ -11,12 +11,12 @@ import { Dropdown } from 'react-native-element-dropdown';
 
 
 function getSubtitle(alert) {
-  if (alert.officialReviewRequired && alert.status !== 'closed') return alert.readyForReview ? 'Awaiting official review' : 'Responder confirmation and report required';
+  if (alert.officialReviewRequired && alert.status !== 'closed') return alert.readyForReview ? 'Awaiting official review' : 'Waiting for the responder’s observation and report';
   if (alert.status === 'escalated') return alert.escalationReason || 'Further response required';
-  if (alert.status === 'closed') return 'This incident is closed';
-  if (alert.status === 'open') return 'No responder assigned';
-  if (alert.guardianStatus === 'Safe') return 'Guardian marked Safe • Waiting for responder';
-  if (alert.responderStatus === 'Safe') return 'Responder marked Safe • Waiting for guardian';
+  if (alert.status === 'closed') return 'This case is closed';
+  if (alert.status === 'open') return 'Waiting for a responder';
+  if (alert.guardianStatus === 'Safe') return 'Guardian reported Safe • Waiting for responder';
+  if (alert.responderStatus === 'Safe') return 'Responder reported Safe • Waiting for guardian';
   return 'Waiting for confirmation';
 }
 
@@ -33,7 +33,7 @@ export default function AlertScreen({ route, navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Alerts</Text>
+          <Text style={styles.heading}>Assistance Requests</Text>
           <TouchableOpacity style={styles.auditButton} onPress={() => navigation.navigate('AuditLogScreen')}>
             <FontAwesome5 name="bars" size={13} color={colors.primary} />
             <Text style={styles.auditText}>Audit Log</Text>
@@ -63,12 +63,12 @@ export default function AlertScreen({ route, navigation }) {
 
             <Text style={styles.heading1}>{alert.residentName}</Text>
             <Text style={styles.typeText}>{alert.residentType}</Text>
-            <Text style={styles.alertSubtitle}>Scanned by {alert.scannedBy || 'A Bystander'}</Text>
+            <Text style={styles.alertSubtitle}>Reported by {alert.scannedBy}</Text>
 
             <View style={styles.locationBox}>
               <FontAwesome5 name="map-marker-alt" size={14} color={colors.primary} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.locationLabel}>QR scanned at</Text>
+                <Text style={styles.locationLabel}>Reported location</Text>
                 <Text style={styles.locationText}>{alert.location}</Text>
               </View>
             </View>
@@ -82,19 +82,19 @@ export default function AlertScreen({ route, navigation }) {
             </View>
 
             {alert.status === 'open' ? (
-              <TouchableOpacity style={styles.detailsButton} onPress={() => navigation.navigate('AssignResponder', { alertId: alert.id })}>
-                <Text style={styles.detailsText}>Assign Responder</Text>
+              <TouchableOpacity style={styles.detailsButton} onPress={() => navigation.navigate('AlertDetails', { alertId: alert.id })}>
+                <Text style={styles.detailsText}>Review Request</Text>
                 <FontAwesome5 name="caret-right" size={18} color={colors.primary} />
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.detailsButton} onPress={() => navigation.navigate('AlertDetails', { alertId: alert.id })}>
-                <Text style={styles.detailsText}>Tap for Full Details</Text>
+                <Text style={styles.detailsText}>View Assistance Details</Text>
                 <FontAwesome5 name="caret-right" size={18} color={colors.primary} />
               </TouchableOpacity>
             )}
           </View>
         ))}
-        {visibleAlerts.length === 0 && <View style={styles.emptyWrap}><FontAwesome5 name="bell-slash" size={38} color={colors.textMuted} /><Text style={styles.emptyTitle}>No alerts found</Text><Text style={styles.emptyText}>There are no alerts matching this filter.</Text></View>}
+        {visibleAlerts.length === 0 && <View style={styles.emptyWrap}><FontAwesome5 name="bell-slash" size={38} color={colors.textMuted} /><Text style={styles.emptyTitle}>No requests found</Text><Text style={styles.emptyText}>No assistance requests match this filter.</Text></View>}
       </ScrollView>
       <TabBar />
     </SafeAreaView>

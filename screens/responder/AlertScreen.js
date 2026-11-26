@@ -15,38 +15,23 @@ export default function AlertScreen({ navigation }) {
   const [activeFilter, setActiveFilter] = useState('all');
 
   const myAlerts = useMemo(
-    () => alerts.filter((alert) => alert.responderId === account.id),
+    () => alerts.filter((alert) => alert.responderId === account.id && alert.status !== 'closed'),
     [alerts, account.id]
   );
 
   const filteredAlerts = useMemo(
-    () => sortAlertsByPriority(activeFilter === 'all'
-        ? myAlerts : myAlerts.filter((alert) => alert.status?.toLowerCase() === activeFilter)),
-    [myAlerts, activeFilter]
+    () => sortAlertsByPriority(myAlerts),
+    [myAlerts]
   );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Alerts</Text>
-          <TouchableOpacity style={styles.auditButton} onPress={() => navigation.navigate('AuditLogScreen')}>
-            <FontAwesome5 name="bars" size={13} color={colors.primary} />
-            <Text style={styles.auditText}>Audit Log</Text>
-          </TouchableOpacity>
+          <Text style={styles.heading}>Assignments</Text>
         </View>
-        <Text style={styles.subheading}>{filteredAlerts === 'unassigned' ? 'Alerts waiting for responder assignment' : 'Monitor emergency alert status'}</Text>
+        <Text style={styles.subheading}>Open assistance requests assigned to you. Closed cases are in History.</Text>
 
-        <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Filter by:</Text>
-          <Dropdown
-            style={styles.filterSelect} containerStyle={styles.filterMenu} placeholderStyle={styles.filterText}
-            selectedTextStyle={styles.filterText} itemTextStyle={styles.filterText} fontFamily="Poppins_500Medium"
-            data={ALERT_FILTERS} labelField="label" valueField="key" value={activeFilter}
-            onChange={(item) => setActiveFilter(item.key)} iconColor={colors.textSecondary} activeColor={colors.primarySoft} dropdownPosition="auto"
-          />
-        </View>
-        <Text style={styles.filterHint}>Showing: {alertFilterDescription(activeFilter)}</Text>
         <View style={styles.divider} />
       </View>
 
@@ -54,8 +39,8 @@ export default function AlertScreen({ navigation }) {
         {filteredAlerts.length === 0 ? (
           <View style={styles.emptyWrap}>
             <FontAwesome5 name="clipboard-check" size={40} color={colors.successInk} />
-            <Text style={styles.emptyTitle}>NO ACTIVE ASSIGNMENT</Text>
-            <Text style={styles.emptyText}>You currently have no emergency task assigned.</Text>
+            <Text style={styles.emptyTitle}>NO OPEN ASSIGNMENTS</Text>
+            <Text style={styles.emptyText}>You have no open assistance requests assigned.</Text>
           </View>
         ) : filteredAlerts.map((alert) => (
           <View key={alert.id} style={[styles.alertCard, alert.status === 'escalated' && styles.alertCardEscalated]}>
@@ -68,12 +53,12 @@ export default function AlertScreen({ navigation }) {
 
             <Text style={styles.heading1}>{alert.residentName}</Text>
             <Text style={styles.typeText}>{alert.residentType}</Text>
-            <Text style={styles.alertSubtitle}>Scanned by {alert.scannedBy || 'A Bystander'}</Text>
+            <Text style={styles.alertSubtitle}>Reported by {alert.scannedBy}</Text>
 
             <View style={styles.locationBox}>
               <FontAwesome5 name="map-marker-alt" size={14} color={colors.primary} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.locationLabel}>QR scanned at</Text>
+                <Text style={styles.locationLabel}>Reported location</Text>
                 <Text style={styles.locationText}>{alert.location}</Text>
               </View>
             </View>
@@ -82,30 +67,37 @@ export default function AlertScreen({ navigation }) {
 
               <View style={styles.statusRow}>
                 <Text style={[styles.statusText, alert.guardianStatus === 'Not Safe' ? styles.notSafe : alert.guardianStatus === 'Safe' ? styles.safe : styles.waiting]}>Guardian: {'\n'}{alert.guardianStatus}</Text>
-                <Text style={[styles.statusText, alert.responderStatus === 'Not Safe' ? styles.notSafe : alert.responderStatus === 'Safe' ? styles.safe : styles.waiting]}>Responder: {'\n'}{alert.responderStatus !== 'Pending' ? alert.responderStatus: alert.responderName ? 'Assigned': 'Waiting'}</Text>
+                <Text style={[styles.statusText, alert.responderStatus === 'Not Safe' ? styles.notSafe : alert.responderStatus === 'Safe' ? styles.safe : styles.waiting]}>Responder: {'\n'}{alert.responderStatus !== 'Waiting' ? alert.responderStatus: alert.responderName ? 'Assigned': 'Waiting'}</Text>
               </View>
 
-            {alert.status !== 'closed' && alert.responderStatus !== 'Safe' && alert.responderStatus !== 'Not Safe' && (
+            {alert.status !== 'closed' && alert.assignment_status === 'pending_acceptance' && (
+              <TouchableOpacity style={styles.detailsButton} onPress={() => navigation.navigate('AlertDetails', { alertId: alert.id })}>
+                <Text style={styles.detailsText}>New assignment · Accept or Decline</Text>
+                <FontAwesome5 name="caret-right" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+            {/* Safety observations are accepted only from the responder who accepted the assignment. */}
+            {alert.status !== 'closed' && alert.assignment_status === 'accepted' && alert.responderStatus !== 'Safe' && alert.responderStatus !== 'Not Safe' && (
               <View style={styles.buttonWrap}>
                 <TouchableOpacity
                   style={[styles.button, styles.buttonSafe, alert.responderStatus === 'Safe' && styles.buttonDisabled]}
                   disabled={alert.responderStatus === 'Safe'}
                   onPress={() => navigation.navigate('ConfirmationScreen', { status: 'Safe', alertId: alert.id, resident: { name: alert.residentName, id: alert.residentId } })}
                 >
-                  <Text style={[styles.buttonText, styles.safeText]}>Mark Safe</Text>
+                  <Text style={[styles.buttonText, styles.safeText]}>Report Safe</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.button, styles.buttonNotSafe, alert.responderStatus === 'Not Safe' && styles.buttonDisabled]}
                   disabled={alert.responderStatus === 'Not Safe'}
                   onPress={() => navigation.navigate('ConfirmationScreen', { status: 'Not Safe', alertId: alert.id, resident: { name: alert.residentName, id: alert.residentId } })}
                 >
-                  <Text style={[styles.buttonText, styles.notSafeText]}>Mark Not Safe</Text>
+                  <Text style={[styles.buttonText, styles.notSafeText]}>Report Not Safe</Text>
                 </TouchableOpacity>
               </View>
             )}
 
             <TouchableOpacity style={styles.detailsButton} onPress={() => navigation.navigate('AlertDetails', { alertId: alert.id })}>
-              <Text style={styles.detailsText}>Tap for Full Details</Text>
+              <Text style={styles.detailsText}>View Assistance Details</Text>
               <FontAwesome5 name="caret-right" size={18} color={colors.primary} />
             </TouchableOpacity>
           </View>

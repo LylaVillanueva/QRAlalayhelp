@@ -15,12 +15,12 @@ function getStatusLabel(alert) {
 }
 
 function getStatusMessage(alert) {
-  if (alert.officialReviewRequired && alert.status !== 'closed') return alert.readyForReview ? 'Awaiting official review' : 'Responder confirmation and report required';
+  if (alert.officialReviewRequired && alert.status !== 'closed') return alert.readyForReview ? 'Awaiting official review' : 'Waiting for the responder’s observation and report';
   if (alert.status === 'escalated') return alert.escalationReason || 'Further response required';
-  if (alert.status === 'closed') return 'Both confirmations completed';
+  if (alert.status === 'closed') return 'Closed by a barangay official';
   if (alert.status === 'pending') {
-    if (alert.guardianStatus === 'Safe') return 'Guardian marked Safe • Waiting for responder';
-    if (alert.responderStatus === 'Safe') return 'Responder marked Safe • Waiting for guardian';
+    if (alert.guardianStatus === 'Safe') return 'Guardian reported Safe • Waiting for responder';
+    if (alert.responderStatus === 'Safe') return 'Responder reported Safe • Waiting for guardian';
     return 'Waiting for confirmation';
   }
   return 'Waiting for responder assignment';
@@ -37,16 +37,15 @@ export default function HomeScreen({ navigation }) {
   }), [alerts, residents, users]);
 
   const attentionAlerts = alerts.filter((a) => a.status !== 'closed').slice(0, 3);
-  const recentActivity = auditLogs.slice(0, 3);
+  const recentActivity = auditLogs.filter((log) => ['alert', 'assignment', 'alertEscalated', 'alertClosed'].includes(log.category)).slice(0, 3);
 
   const openAlerts = () => navigation.navigate('AlertScreen', { filter: 'active' });
   const pendingAssignments = () => navigation.navigate('AlertScreen', { filter: 'unassigned' });
 
   const cards = [
-    { label: 'Active Alerts', count: counts.active, icon: 'exclamation-triangle', onPress: openAlerts },
+    { label: 'Open Requests', count: counts.active, icon: 'exclamation-triangle', onPress: openAlerts },
     { label: 'Registered Residents', count: counts.residents, icon: 'users', onPress: () => navigation.navigate('ResidentScreen') },
     { label: 'Pending Assignments', count: counts.unassigned, icon: 'clock', onPress: pendingAssignments },
-    { label: 'System Users', count: counts.users, icon: 'user-shield', onPress: () => navigation.navigate('ManageUsers') },
   ];
 
   return (
@@ -88,11 +87,11 @@ export default function HomeScreen({ navigation }) {
         {attentionAlerts.length === 0 ? (
           <View style={styles.emptyCard}>
             <FontAwesome5 name="check-circle" size={24} color={colors.successInk} />
-            <Text style={styles.emptyTitle}>No need attention</Text>
-            <Text style={styles.emptyText}>All current alerts have been closed.</Text>
+            <Text style={styles.emptyTitle}>Nothing needs attention</Text>
+            <Text style={styles.emptyText}>There are no open assistance requests.</Text>
           </View>
         ) : attentionAlerts.map((alert) => (
-          <TouchableOpacity key={alert.id} style={[styles.headCard, styles.shadow, alert.status === 'escalated' && styles.escalatedCard]} onPress={() => alert.status === 'open' ? navigation.navigate('AssignResponder', { alertId: alert.id }) : navigation.navigate('AlertDetails', { alertId: alert.id })} activeOpacity={0.8}>
+          <TouchableOpacity key={alert.id} style={[styles.headCard, styles.shadow, alert.status === 'escalated' && styles.escalatedCard]} onPress={() => navigation.navigate('AlertDetails', { alertId: alert.id })} activeOpacity={0.8}>
             <View style={styles.cardTopRow}>
               <Text style={[styles.statusPill, styles[`status_${alert.status}`]]}>{getStatusLabel(alert)}</Text>
               <Text style={styles.cardTime}>{alert.scannedAt}</Text>

@@ -206,3 +206,130 @@ test('private Realtime profile subscription forwards data-free invalidations and
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(removedChannel, channel);
 });
+
+function caseFixture({ assignmentStatus = null, responderId = null } = {}) {
+  const mock = fixture();
+  const rpc = mock.supabase.rpc;
+  mock.supabase.storage = { from: () => ({ createSignedUrls: async () => ({ data: [], error: null }) }) };
+  mock.supabase.rpc = async (name, args) => {
+    if (name === 'get_assistance_case') { mock.calls.push({ rpc: name, args }); return { data: [{ case_id: 'case-1', status: 'in_progress', version: 4 }], error: null }; }
+    if (name === 'list_assistance_cases') return { data: [{ case_id: 'case-1', status: 'in_progress', version: 4,
+      assigned_responder_id: responderId, assignment_id: responderId ? 'asg-1' : null, assignment_status: assignmentStatus }], error: null };
+    if (name === 'list_accessible_case_responder_photos') return { data: [], error: null };
+    return rpc(name, args);
+  };
+  return mock;
+}
+
+test('assigning a case without an active assignment uses assign_responder', async () => {
+  const mock = caseFixture();
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await supabaseApi.assignResponder('case-1', 'resp-2');
+  const call = mock.calls.find((item) => item.rpc === 'assign_responder');
+  assert.deepEqual(call.args, { p_case_id: 'case-1', p_responder_id: 'resp-2', p_expected_version: 4 });
+});
+
+test('replacing a pending or accepted responder uses reassign_responder with a reason', async () => {
+  for (const status of ['pending_acceptance', 'accepted']) {
+    const mock = caseFixture({ assignmentStatus: status, responderId: 'resp-1' });
+    const { supabaseApi } = await loadSupabaseApi(mock);
+    await assert.rejects(() => supabaseApi.assignResponder('case-1', 'resp-2'), /reason is required/);
+    await assert.rejects(() => supabaseApi.assignResponder('case-1', 'resp-1', 'same person'), /already assigned/);
+    await supabaseApi.assignResponder('case-1', 'resp-2', '  Cannot reach the area  ');
+    assert.equal(mock.calls.some((item) => item.rpc === 'assign_responder'), false);
+    const call = mock.calls.find((item) => item.rpc === 'reassign_responder');
+    assert.deepEqual(call.args, { p_case_id: 'case-1', p_responder_id: 'resp-2', p_reason: 'Cannot reach the area', p_expected_version: 4 });
+  }
+});
+
+test('a declined assignment can be assigned again without a reason', async () => {
+  // Declined assignments are not returned as active by list_assistance_cases.
+  const mock = caseFixture({ assignmentStatus: null, responderId: null });
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await supabaseApi.assignResponder('case-1', 'resp-2');
+  assert.ok(mock.calls.some((item) => item.rpc === 'assign_responder'));
+});
+
+test('a new guardian is invited without wards, then linked and verified by link id', async () => {
+  const mock = fixture();
+  const rpc = mock.supabase.rpc;
+  mock.supabase.rpc = async (name, args) => {
+    if (name === 'create_resident_with_birth_date') { mock.calls.push({ rpc: name, args }); return { data: 'res-1', error: null }; }
+    if (name === 'create_guardian_link') { mock.calls.push({ rpc: name, args }); return { data: 'link-1', error: null }; }
+    return rpc(name, args);
+  };
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await supabaseApi.enrollResident({
+    fullName: 'Fictional Resident', residentType: 'Senior Citizen', guardianVerifiedByOfficial: true,
+    newGuardian: { fullName: 'Fictional Guardian', email: 'guardian@example.test', relation: 'Child' },
+  });
+  const invite = mock.calls.find((item) => item.name === 'invite-account');
+  assert.equal('wardIds' in invite.options.body, false);
+  assert.equal(invite.options.body.role, 'guardian');
+  const link = mock.calls.find((item) => item.rpc === 'create_guardian_link');
+  assert.deepEqual(link.args, { p_resident_id: 'res-1', p_guardian_profile_id: 'profile-123', p_relationship: 'Child' });
+  const review = mock.calls.find((item) => item.rpc === 'review_guardian_link');
+  assert.equal(review.args.p_link_id, 'link-1');
+  assert.equal(review.args.p_decision, 'verified');
+});
+
+test('a new guardian without an email is refused but the resident is kept', async () => {
+  const mock = fixture();
+  const rpc = mock.supabase.rpc;
+  mock.supabase.rpc = async (name, args) => (name === 'create_resident_with_birth_date' ? { data: 'res-9', error: null } : rpc(name, args));
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await assert.rejects(
+    () => supabaseApi.enrollResident({ fullName: 'Fictional Resident', newGuardian: { fullName: 'No Email', phone: '+639170000000' } }),
+    (error) => error.residentId === 'res-9' && /email address/.test(error.message),
+  );
+  assert.equal(mock.calls.some((item) => item.name === 'invite-account'), false);
+});
+
+test('resident history translates backend statuses for the alert stages', async () => {
+  const mock = fixture();
+  mock.supabase.rpc = async () => ({ data: [
+    { case_id: 'c1', status: 'new' }, { case_id: 'c2', status: 'in_progress' }, { case_id: 'c3', status: 'closed' },
+  ], error: null });
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  const history = await supabaseApi.listResidentHistory('res-1');
+  assert.deepEqual(history.map((row) => [row.id, row.status]), [['c1', 'active'], ['c2', 'assigned'], ['c3', 'closed']]);
+});
+
+test('an invalid or revoked QR card shows the server message, not a generic HTTP error', async () => {
+  const mock = fixture();
+  mock.supabase.functions.invoke = async () => ({ data: null, error: {
+    message: 'Edge Function returned a non-2xx status code',
+    context: { status: 404, json: async () => ({ error: { code: 'QR_NOT_ACTIVE', message: 'This QR code is not available.' } }) },
+  } });
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await assert.rejects(() => supabaseApi.getPublicQrView('revoked-token'), (error) => error.code === 'QR_NOT_ACTIVE' && error.message === 'This QR code is not available.');
+});
+
+test('an unregistered sign-in email is answered like a registered one', async () => {
+  const mock = fixture();
+  mock.supabase.auth.signInWithOtp = async () => ({ error: { message: 'Signups not allowed for otp', status: 422 } });
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  assert.deepEqual(await supabaseApi.sendOtp({ channel: 'email', identifier: 'unknown@example.test' }), { sent: true });
+  mock.supabase.auth.signInWithOtp = async () => ({ error: { message: 'Email rate limit exceeded', status: 429 } });
+  await assert.rejects(() => supabaseApi.sendOtp({ channel: 'email', identifier: 'someone@example.test' }), /rate limit/);
+});
+
+test('a bystander request sends the landmark and one-time location, and status uses the request token', async () => {
+  const mock = fixture();
+  mock.supabase.functions.invoke = async (name, options) => {
+    mock.calls.push({ name, options });
+    if (name === 'submit-assistance-request') return { data: { data: { status: 'new', joinedExisting: false, requestToken: options.body.requestToken, cancellableUntil: '2026-11-26T02:00:00Z', locationToken: options.body.locationToken } }, error: null };
+    return { data: { data: { status: 'in_progress', cancelled: false } }, error: null };
+  };
+  globalThis.crypto ??= require('node:crypto').webcrypto;
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  const result = await supabaseApi.recordQrScan('card-token', { latitude: 14.5, longitude: 121.0, accuracyMeters: 12, bystanderNotes: 'Sitting near the gate', locationDescription: 'Barangay hall gate' });
+  const body = mock.calls[0].options.body;
+  assert.equal(body.locationDescription, 'Barangay hall gate');
+  assert.equal(body.publicNote, 'Sitting near the gate');
+  assert.equal(body.accuracyMeters, 12);
+  const status = await supabaseApi.getPublicAssistanceStatus(result.cancelToken);
+  assert.equal(mock.calls[1].name, 'public-assistance-status');
+  assert.equal(mock.calls[1].options.body.requestToken, result.cancelToken);
+  assert.equal(status.status, 'in_progress');
+});

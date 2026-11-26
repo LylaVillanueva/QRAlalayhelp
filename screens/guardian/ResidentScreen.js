@@ -39,51 +39,30 @@ export default function ResidentScreen({ navigation }) {
       const matchesSearch = `${ward.name} ${ward.code || ''}`
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
-      const matchesType =
-        activeFilter === 'all' || ward.type === activeFilter;
-      return matchesSearch && matchesType;
+      return matchesSearch;
     });
-  }, [myWards, searchQuery, activeFilter]);
+  }, [myWards, searchQuery]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>My Wards</Text>
+          <Text style={styles.heading}>My Residents</Text>
         </View>
-        <Text style={styles.subheading}>Residents linked to Your Account</Text>
+        <Text style={styles.subheading}>Residents linked to your account</Text>
         <View style={styles.divider} />
 
         <View style={styles.searchBar}>
           <FontAwesome5 name="search" size={18} color={colors.primary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by name or ID"
+            placeholder="Search by name"
             placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
 
-        <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Filter by:</Text>
-          <Dropdown
-            style={styles.filterSelect}
-            containerStyle={styles.filterMenu}
-            placeholderStyle={styles.filterText}
-            selectedTextStyle={styles.filterText}
-            itemTextStyle={styles.filterText}
-            fontFamily="Poppins_500Medium"
-            data={filters}
-            labelField="label"
-            valueField="key"
-            value={activeFilter}
-            onChange={(item) => setActiveFilter(item.key)}
-            iconColor={colors.textSecondary}
-            activeColor={colors.primarySoft}
-            dropdownPosition="auto"
-          />
-        </View>
         <View style={styles.divider} />
       </View>
 
@@ -96,12 +75,12 @@ export default function ResidentScreen({ navigation }) {
           <View style={styles.emptyWrap}>
             <FontAwesome5 name="user-friends" size={36} color={colors.textSecondary} />
             <Text style={styles.emptyTitle}>
-              {myWards.length === 0 ? 'No Wards Linked' : 'No Wards Found'}
+              {myWards.length === 0 ? 'No Residents Linked' : 'No Residents Found'}
             </Text>
             <Text style={styles.emptyText}>
               {myWards.length === 0
-                ? 'Your linked ward information will appear here once your Guardian account is connected to a resident.'
-                : 'Try another name, ID, or filter.'}
+                ? 'Residents appear here after a barangay official verifies your relationship.'
+                : 'Try another name.'}
             </Text>
           </View>
         ) : (
@@ -109,7 +88,7 @@ export default function ResidentScreen({ navigation }) {
             const active = alerts.find(
               (alert) => alert.residentId === ward.id && alert.status !== 'closed'
             );
-            const status = active ? active.status : 'safe';
+            const status = active ? active.status : null;
             return (
               <TouchableOpacity
                 key={ward.id}
@@ -121,13 +100,11 @@ export default function ResidentScreen({ navigation }) {
                 <View style={styles.textWrap}>
                   <Text style={styles.residentName}>{ward.name}</Text>
                   <Text style={styles.residentType}>{ward.type}</Text>
-                  <Text style={styles.residentMeta}>{ward.code}</Text>
+                  {ward.address ? <Text style={styles.residentMeta} numberOfLines={1}>{ward.address}</Text> : null}
                 </View>
                 <View style={styles.rightCol}>
-                  <StatusBadge
-                    status={status === 'safe' ? 'closed' : status}
-                    label={status === 'safe' ? 'Safe' : statusLabel(status)}
-                  />
+                  {/* No badge without a request: no open request does not mean the resident is safe. */}
+                  {active ? <StatusBadge status={status} label={statusLabel(status)} /> : null}
                   <FontAwesome5
                     name="chevron-right"
                     size={13}

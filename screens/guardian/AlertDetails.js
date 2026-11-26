@@ -9,7 +9,6 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import TabBar from "../../components/tabs/TabButtons";
 import { Divider } from "../../components/ui";
 import { useAppData } from "../../contexts/AppDataContext";
-import LiveLocationMap from "../../components/LiveLocationMap";
 
 export default function AlertDetails({ route, navigation }) {
   const { alerts, account } = useAppData();
@@ -20,8 +19,8 @@ export default function AlertDetails({ route, navigation }) {
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.back} onPress={() => navigation.goBack()}>‹ Back</Text>
-          <Text style={styles.heading1}>Alert not found</Text>
-          <Text style={styles.subheading}>This alert may have been closed or removed.</Text>
+          <Text style={styles.heading1}>Request not found</Text>
+          <Text style={styles.subheading}>Return to the Assistance list and refresh.</Text>
         </View>
       </SafeAreaView>
     );
@@ -40,7 +39,6 @@ export default function AlertDetails({ route, navigation }) {
           <View style={{ flex: 1, margin: 0 }}>
             <Text style={styles.contextTitle}>{alert.residentName}</Text>
             <Text style={styles.small}>Type: {alert.residentType}</Text>
-            <Text style={styles.small}>ID Number: {alert.residentId}</Text>
           </View>
         </View>
 
@@ -52,7 +50,7 @@ export default function AlertDetails({ route, navigation }) {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.section}>Incident Location</Text>
+        <Text style={styles.section}>Reported Location</Text>
         <View style={styles.card}>
           <View style={styles.iconRow}>
             <FontAwesome5 name="map-marker-alt" size={18} color={colors.primary} />
@@ -61,16 +59,15 @@ export default function AlertDetails({ route, navigation }) {
                 <Text style={styles.small}>Location where the QR code was scanned</Text>
               </View>
           </View>
-          {alert.mapLatitude != null && alert.mapLongitude != null && <TouchableOpacity style={styles.mapButton} onPress={async () => { if (alert.mapLatitude == null || alert.mapLongitude == null) { Alert.alert('Location unavailable', 'No coordinates were recorded for this incident.'); return; } 
+          {alert.mapLatitude != null && alert.mapLongitude != null && <TouchableOpacity style={styles.mapButton} onPress={async () => { if (alert.mapLatitude == null || alert.mapLongitude == null) { Alert.alert('Location unavailable', 'No location was shared with this request.'); return; } 
           try { await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${alert.mapLatitude},${alert.mapLongitude}`); } catch { Alert.alert('Could not open map'); } }}><Text style={styles.mapText}>View Location</Text></TouchableOpacity>}
-          <LiveLocationMap alert={alert} />
         </View>
         
-        <Text style={styles.section}>Scanned By</Text>
+        <Text style={styles.section}>Reported By</Text>
         <View style={styles.card}><View style={styles.iconRow}>
           <Image source={require("../../assets/profile.png")} style={styles.smallPhoto} />
           <View style={{ flex: 1 }}><Text style={styles.cardTitle}>{alert.scannedBy}</Text>
-            <Text style={styles.small}>QR scan initiated the alert</Text>
+            <Text style={styles.small}>Sent the request by scanning the resident's QR card</Text>
           </View>
         </View></View>
         
@@ -91,17 +88,17 @@ export default function AlertDetails({ route, navigation }) {
               ) : (
                 <>
                   <Text style={styles.cardTitle}>No responder assigned</Text>
-                  <Text style={styles.small}>This open alert is waiting for assignment.</Text>
+                  <Text style={styles.small}>This request is waiting for a responder.</Text>
                 </>
               )}
             </View>
           </View>
         </View>
 
-        <Text style={styles.section}>Confirmation Status</Text>
+        <Text style={styles.section}>Safety Observations</Text>
         <View style={styles.actionNotice}>
           <FontAwesome5 name="user-check" size={15} color={colors.primary} style={{ marginHorizontal: 6 }} />
-          <Text style={styles.actionNoticeText}>As the Guardian, confirm whether your ward is safe or still needs assistance.</Text>
+          <Text style={styles.actionNoticeText}>As the guardian, report what you know about the resident. Your observation does not close the case; a barangay official reviews it.</Text>
         </View>
         {alert.hasDiscrepancy && (
           <View style={styles.discrepancyCard}>
@@ -116,18 +113,25 @@ export default function AlertDetails({ route, navigation }) {
           <Confirmation label="Guardian" value={alert.guardianStatus} />
           <Divider />
           <Confirmation label="Responder" value={alert.responderName ? alert.responderStatus : 'Waiting'} />
+          {alert.status !== 'closed' && ['Safe', 'Not Safe'].map((decision) => (
+            <TouchableOpacity key={decision} style={styles.mapButton} accessibilityRole="button"
+              disabled={alert.guardianStatus === decision}
+              onPress={() => navigation.navigate('ConfirmationScreen', { status: decision, alertId: alert.id })}>
+              <Text style={styles.mapText}>{alert.guardianStatus === decision ? `${decision} reported` : `Report ${decision}`}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {alert.status === 'escalated' && <View style={styles.escalationCard}>
           <FontAwesome5 name="exclamation-triangle" size={20} color={colors.alertInk} />
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.escalationTitle}>Alert Escalated</Text>
+            <Text style={styles.escalationTitle}>Request Escalated</Text>
             <Text style={styles.small}>{alert.escalationReason || 'Further response is required.'}</Text>
           </View></View>}
         
         {alert.status === 'closed' && <View style={styles.closedCard}>
           <FontAwesome5 name="check-circle" size={20} color={colors.successInk} />
-          <Text style={styles.closedText}>{alert.cancelledReason ? 'Cancelled by the bystander who raised it — likely a false alarm.' : 'This incident is no longer active.'}</Text>
+          <Text style={styles.closedText}>{alert.cancelledReason ? 'Cancelled by the bystander who raised it — likely a false alarm.' : 'This case is closed.'}</Text>
         </View>}
       </ScrollView>
       <TabBar />

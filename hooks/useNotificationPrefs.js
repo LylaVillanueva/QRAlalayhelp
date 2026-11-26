@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DEFAULT_NOTIFICATION_PREFS, loadNotificationPrefs, saveNotificationPrefs } from "../services/notificationPrefs";
 import { registerDeviceForPush, unregisterDeviceForPush } from "../services/pushRegistration";
-import { notificationPermissions } from "../services/notifications";
+import { notificationPermissions, getExpoPushToken } from "../services/notifications";
 
 // Backs every Settings screen's notification toggles with real, persisted
 // state (they used to be a bare useState that reset the moment you left the
@@ -9,6 +9,14 @@ import { notificationPermissions } from "../services/notifications";
 // this device with the backend, so turning it off really stops delivery.
 export default function useNotificationPrefs() {
   const [prefs, setPrefs] = useState(DEFAULT_NOTIFICATION_PREFS);
+  // Only offer the toggle when this device can obtain a push token, i.e. the
+  // build has push credentials and notification permission was granted.
+  const [pushAvailable, setPushAvailable] = useState(false);
+  useEffect(() => {
+    let active = true;
+    if (notificationPermissions.supported) getExpoPushToken().then((token) => { if (active) setPushAvailable(!!token); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -30,6 +38,6 @@ export default function useNotificationPrefs() {
     else unregisterDeviceForPush();
   }, [set]);
 
-  // Push delivery isn't available in Expo Go or on web; the toggle is hidden there.
-  return { prefs, set, setPushEnabled, pushSupported: notificationPermissions.supported };
+  // Hidden in Expo Go, on web, and when push credentials or permission are missing.
+  return { prefs, set, setPushEnabled, pushSupported: pushAvailable };
 }

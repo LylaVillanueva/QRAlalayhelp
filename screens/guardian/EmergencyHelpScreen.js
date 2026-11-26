@@ -82,7 +82,7 @@ export default function EmergencyHelpScreen({ navigation }) {
           <FontAwesome5 name="info-circle" size={15} color={colors.textSecondary} />
           <Text style={styles.noteText}>{barangayContact?.isCached
             ? `Showing the last saved ${barangayContact.label} number from ${barangayContact.cachedAt ? new Date(barangayContact.cachedAt).toLocaleDateString() : 'an earlier sync'}. Confirm it is current if possible. `
-            : !barangayContact ? 'No verified barangay number is saved yet. Contact your barangay office to add one. ' : ''}If the emergency involves your own ward, you do not need to scan their QR code first. Use this page to contact help directly.</Text>
+            : !barangayContact ? 'No verified barangay number is saved yet. Contact your barangay office to add one. ' : ''}If your own resident needs help, you do not need to scan their QR code first. Use this page to contact help directly.</Text>
         </View>
       </View>
       <GuardianTabBar />

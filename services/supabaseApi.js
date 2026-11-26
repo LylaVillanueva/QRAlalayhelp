@@ -252,13 +252,13 @@ async function publicCapabilities(token) {
 export const supabaseApi = {
   async getPublicQrView(token) {
     const { data, error } = await supabase.functions.invoke('public-qr-view', { body: { token } });
-    fail(error);
+    await functionFailure(error);
     return data?.data;
   },
 
   async getPublicAssistanceStatus(requestToken) {
     const { data, error } = await supabase.functions.invoke('public-assistance-status', { body: { requestToken } });
-    fail(error);
+    await functionFailure(error);
     return data?.data;
   },
 
@@ -278,7 +278,7 @@ export const supabaseApi = {
         locationDescription: body.locationDescription ?? null,
       },
     });
-    fail(error);
+    await functionFailure(error);
     const result = data?.data;
     return {
       status: result?.status,
@@ -291,7 +291,7 @@ export const supabaseApi = {
 
   async cancelQrScan(cancelToken) {
     const { data, error } = await supabase.functions.invoke('cancel-assistance-request', { body: { requestToken: cancelToken } });
-    fail(error);
+    await functionFailure(error);
     const token = qrTokenByRequestToken.get(cancelToken);
     if (data?.data?.cancelled && token) await sessionStorage.removeItem(requestKey(token)).catch(() => {});
     qrTokenByRequestToken.delete(cancelToken);
@@ -304,6 +304,9 @@ export const supabaseApi = {
       ...credentials,
       options: { shouldCreateUser: false },
     });
+    // shouldCreateUser:false rejects unknown addresses. Answer the same way as
+    // for a real account so the screen never reveals whether an account exists.
+    if (error && /signups? not allowed|user not found/i.test(error.message || '')) return { sent: true };
     fail(error);
     return { sent: true };
   },
@@ -407,7 +410,11 @@ export const supabaseApi = {
   },
 
   async listResidentHistory(residentId) {
-    return rows(await rpc('list_resident_case_history', { p_resident_id: residentId })).map((row) => ({ ...row, id: row.case_id }));
+    // History rows carry only the backend status; translate it the same way as
+    // the case list so "in_progress" doesn't read as a new, unassigned alert.
+    return rows(await rpc('list_resident_case_history', { p_resident_id: residentId })).map((row) => ({
+      ...row, id: row.case_id, status: row.status === 'in_progress' ? 'assigned' : row.status === 'new' ? 'active' : row.status,
+    }));
   },
 
   async getIncident(caseId) {
@@ -425,8 +432,24 @@ export const supabaseApi = {
     return rows(await rpc('list_my_audit_history', { p_limit: 100 }));
   },
 
-  async assignResponder(caseId, responderId) {
-    const current = await this.getIncident(caseId);
+  // assign_responder refuses a case that still has a pending or accepted
+  // assignment; replacing that responder must go through reassign_responder
+  // with a recorded reason. A declined assignment has ended, so plain assign works.
+  async assignResponder(caseId, responderId, reason = null) {
+    const [current, listed] = await Promise.all([
+      this.getIncident(caseId),
+      this.listActiveIncidents({ includeClosed: false }),
+    ]);
+    if (!current) throw new Error('This alert is no longer available. Refresh and try again.');
+    const active = rows(listed).find((item) => item.case_id === caseId);
+    const hasActiveAssignment = ['pending_acceptance', 'accepted'].includes(active?.assignment_status);
+    if (hasActiveAssignment) {
+      if (active.assigned_responder_id === responderId) throw new Error('This responder is already assigned to the alert.');
+      if (!reason || !reason.trim()) throw new Error('A reason is required to reassign the responder.');
+      return rpc('reassign_responder', {
+        p_case_id: caseId, p_responder_id: responderId, p_reason: reason.trim(), p_expected_version: current.version,
+      });
+    }
     return rpc('assign_responder', { p_case_id: caseId, p_responder_id: responderId, p_expected_version: current.version });
   },
 
@@ -604,15 +627,18 @@ export const supabaseApi = {
         }
       }
       if (input.newGuardian) {
-        if (!input.newGuardian.email && !input.newGuardian.phone) throw new Error('The resident was created, but a guardian invitation needs an email address or phone number.');
-        const { error } = await supabase.functions.invoke('invite-account', {
+        // Email only: phone sign-in is not configured, so a phone-only
+        // guardian could never sign in.
+        if (!input.newGuardian.email) throw new Error('The resident was created, but a guardian invitation needs an email address.');
+        // Invite without wardIds: an invitation-created link is pending and its
+        // id is never returned, so it could not be verified from the app. The
+        // link is created here instead, where its id is known.
+        const { data, error } = await supabase.functions.invoke('invite-account', {
           body: {
             email: input.newGuardian.email,
             fullName: input.newGuardian.fullName,
             phone: input.newGuardian.phone || null,
             role: 'guardian',
-            wardIds: [residentId],
-            relationship: input.newGuardian.relation || 'Guardian',
           },
         });
         if (error) {
@@ -620,6 +646,20 @@ export const supabaseApi = {
           detailed.code = detailed.code || 'GUARDIAN_INVITATION_FAILED';
           detailed.message = `Resident created, but the guardian invitation could not be sent: ${detailed.message}`;
           throw detailed;
+        }
+        const guardianId = data?.data?.profileId;
+        if (!guardianId) throw new Error('The guardian invitation did not return an account.');
+        const linkId = await rpc('create_guardian_link', {
+          p_resident_id: residentId,
+          p_guardian_profile_id: guardianId,
+          p_relationship: input.newGuardian.relation || 'Guardian',
+        });
+        if (input.guardianVerifiedByOfficial === true) {
+          await rpc('review_guardian_link', {
+            p_link_id: linkId,
+            p_decision: 'verified',
+            p_reason: 'Identity and relationship confirmed by the registering barangay official.',
+          });
         }
       }
     } catch (guardianError) {
@@ -760,7 +800,7 @@ export const supabaseApi = {
 
   async resolveIncident(caseId, report) {
     if (!report || typeof report !== 'object') throw new Error('An explicit responder report and outcome are required.');
-    const actions = `Nature of emergency: ${report.natureOfEmergency}\n${report.actionsTaken}`;
+    const actions = `Reason for assistance: ${report.natureOfEmergency}\n${report.actionsTaken}`;
     return rpc('submit_case_report', {
       p_case_id: caseId,
       p_actions_taken: actions,

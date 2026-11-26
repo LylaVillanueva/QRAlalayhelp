@@ -10,7 +10,6 @@ import TabBar from "../../components/tabs/TabButtons";
 import ReasonPromptModal from "../../components/modals/ReasonPromptModal";
 import { Divider } from "../../components/ui";
 import { useAppData } from "../../contexts/AppDataContext";
-import LiveLocationMap from "../../components/LiveLocationMap";
 
 export default function AlertDetails({ route, navigation }) {
   const { alerts, account, closeIncident, markGuardianUnreachable } = useAppData();
@@ -19,7 +18,7 @@ export default function AlertDetails({ route, navigation }) {
   const [showUnreachableModal, setShowUnreachableModal] = useState(false);
   const [markingUnreachable, setMarkingUnreachable] = useState(false);
   const alert = alerts.find((item) => item.id === (route.params?.alertId || route.params?.incidentId));
-  if (!alert) return <SafeAreaView style={styles.container}><Text onPress={() => navigation.goBack()}>‹ Back</Text><Text>Alert not found. Return to the alert list and refresh.</Text></SafeAreaView>;
+  if (!alert) return <SafeAreaView style={styles.container}><Text onPress={() => navigation.goBack()}>‹ Back</Text><Text>Request not found. Return to the list and refresh.</Text></SafeAreaView>;
 
   const guardianPending = alert.status !== 'closed' && !alert.officialReviewRequired && alert.guardianStatus === 'Waiting';
 
@@ -38,7 +37,7 @@ export default function AlertDetails({ route, navigation }) {
   const submitClosure = async (reason) => {
     setClosing(true);
     try { await closeIncident(alert.id, reason); setShowCloseReason(false); }
-    catch (error) { Alert.alert('Could not close alert', error.message); }
+    catch (error) { Alert.alert('Could not close the case', error.message); }
     finally { setClosing(false); }
   };
 
@@ -55,7 +54,6 @@ export default function AlertDetails({ route, navigation }) {
           <View style={{ flex: 1, margin: 0 }}>
             <Text style={styles.contextTitle}>{alert.residentName}</Text>
             <Text style={styles.small}>Type: {alert.residentType}</Text>
-            <Text style={styles.small}>ID Number: {alert.residentId}</Text>
           </View>
         </View>
 
@@ -67,7 +65,7 @@ export default function AlertDetails({ route, navigation }) {
       </View>
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.section}>Incident Location</Text>
+        <Text style={styles.section}>Reported Location</Text>
         <View style={styles.card}>
           <View style={styles.iconRow}>
             <FontAwesome5 name="map-marker-alt" size={18} color={colors.primary} />
@@ -76,16 +74,15 @@ export default function AlertDetails({ route, navigation }) {
                 <Text style={styles.small}>Location where the QR code was scanned</Text>
               </View>
           </View>
-          {alert.mapLatitude != null && alert.mapLongitude != null && <TouchableOpacity style={styles.mapButton} onPress={async () => { if (alert.mapLatitude == null || alert.mapLongitude == null) { Alert.alert('Location unavailable', 'No coordinates were recorded for this incident.'); return; } 
+          {alert.mapLatitude != null && alert.mapLongitude != null && <TouchableOpacity style={styles.mapButton} onPress={async () => { if (alert.mapLatitude == null || alert.mapLongitude == null) { Alert.alert('Location unavailable', 'No location was shared with this request.'); return; } 
           try { await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${alert.mapLatitude},${alert.mapLongitude}`); } catch { Alert.alert('Could not open map'); } }}><Text style={styles.mapText}>View Location</Text></TouchableOpacity>}
-          <LiveLocationMap alert={alert} />
         </View>
         
-        <Text style={styles.section}>Scanned By</Text>
+        <Text style={styles.section}>Reported By</Text>
         <View style={styles.card}><View style={styles.iconRow}>
           <Image source={require("../../assets/profile.png")} style={styles.smallPhoto} />
           <View style={{ flex: 1 }}><Text style={styles.cardTitle}>{alert.scannedBy}</Text>
-            <Text style={styles.small}>QR scan initiated the alert</Text>
+            <Text style={styles.small}>Sent the request by scanning the resident's QR card</Text>
           </View>
         </View></View>
         
@@ -105,7 +102,7 @@ export default function AlertDetails({ route, navigation }) {
           </View></View>
           ) : (
             <><Text style={styles.cardTitle}>No responder assigned</Text>
-              <Text style={styles.small}>This open alert is waiting for assignment.</Text>
+              <Text style={styles.small}>This request is waiting for a responder.</Text>
               {alert.status !== 'closed' && <TouchableOpacity style={styles.assignButton} onPress={() => navigation.navigate('AssignResponder', { alertId: alert.id })}>
                 <Text style={styles.assignText}>Assign Responder</Text>
               </TouchableOpacity>}
@@ -113,13 +110,13 @@ export default function AlertDetails({ route, navigation }) {
           )}
         </View>
 
-        <Text style={styles.section}>Confirmation Status</Text>
+        <Text style={styles.section}>Safety Observations</Text>
         {alert.hasDiscrepancy && (
           <View style={styles.discrepancyCard}>
             <FontAwesome5 name="exclamation-triangle" size={16} color={colors.alertInk} />
             <View style={{ flex: 1, marginLeft: 9 }}>
               <Text style={styles.escalationTitle}>Guardian and Responder Disagree</Text>
-              <Text style={styles.small}>One says Safe, the other says Not Safe. Verify directly before this alert closes.</Text>
+              <Text style={styles.small}>One says Safe, the other says Not Safe. Verify directly before closing.</Text>
             </View>
           </View>
         )}
@@ -150,12 +147,12 @@ export default function AlertDetails({ route, navigation }) {
           placeholder="Record the official's closure decision" confirmLabel="Review & Close" submitting={closing}
           onCancel={() => setShowCloseReason(false)} onSubmit={submitClosure} />
 
-        {alert.incidentReport && <><Text style={styles.section}>Responder Report</Text><View style={styles.card}><Text style={styles.note}>{alert.incidentReport}</Text></View></>}
+        {alert.incidentReport && <><Text style={styles.section}>Assistance Report</Text><View style={styles.card}><Text style={styles.note}>{alert.incidentReport}</Text></View></>}
         {(alert.officialReviewRequired || account?.role === 'barangay_official') && <>
           <Text style={styles.section}>Official Review</Text>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{alert.backendStatus === 'closed' ? 'Approved' : alert.status === 'closed' ? 'Inactive' : 'Pending review'}</Text>
-            <Text style={styles.small}>{alert.status === 'closed' ? 'This incident has been closed.' : alert.readyForReview ? 'Review the responder’s report and Safe confirmation before closing.' : 'Waiting for the assigned responder’s Safe confirmation and report. Not Safe concerns must be resolved.'}</Text>
+            <Text style={styles.small}>{alert.status === 'closed' ? 'This case was closed by an official.' : alert.readyForReview ? 'Review the responder’s Safe observation and assistance report before closing.' : 'Closing requires the accepted responder’s Safe observation and assistance report, a guardian Safe observation (or a documented unreachable guardian), and no Not Safe observation.'}</Text>
             {alert.status !== 'closed' && <TouchableOpacity accessibilityRole="button" disabled={!alert.readyForReview || closing} style={[styles.mapButton, (!alert.readyForReview || closing) && { opacity: 0.5 }]} onPress={() => setShowCloseReason(true)}><Text style={styles.mapText}>{closing ? 'Closing…' : 'Review & Close'}</Text></TouchableOpacity>}
           </View>
         </>}
@@ -163,13 +160,13 @@ export default function AlertDetails({ route, navigation }) {
         {alert.status === 'escalated' && <View style={styles.escalationCard}>
           <FontAwesome5 name="exclamation-triangle" size={20} color={colors.alertInk} />
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.escalationTitle}>Alert Escalated</Text>
+            <Text style={styles.escalationTitle}>Request Escalated</Text>
             <Text style={styles.small}>{alert.escalationReason || 'Further response is required.'}</Text>
           </View></View>}
         
         {alert.status === 'closed' && <View style={styles.closedCard}>
           <FontAwesome5 name="check-circle" size={20} color={colors.successInk} />
-          <Text style={styles.closedText}>{alert.cancelledReason ? 'Cancelled by the bystander who raised it — likely a false alarm.' : 'This incident is no longer active.'}</Text>
+          <Text style={styles.closedText}>{alert.cancelledReason ? 'Cancelled by the bystander who raised it — likely a false alarm.' : 'This case is closed.'}</Text>
         </View>}
       </ScrollView>
       <TabBar />

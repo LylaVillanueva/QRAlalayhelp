@@ -11,15 +11,15 @@ import { useAppData } from "../../contexts/AppDataContext";
 
 export default function IncidentScreen({ navigation }) {
   const { alerts, account } = useAppData();
-  const incidents = useMemo(() => alerts.filter((alert) => alert.responderId === account.id), [alerts, account.id]);
+  const incidents = useMemo(() => alerts.filter((alert) => alert.responderId === account.id && alert.status === 'closed'), [alerts, account.id]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Incidents</Text>
+          <Text style={styles.heading}>Assistance History</Text>
         </View>
-        <Text style={styles.subheading}>Your handled emergency incidents</Text>
+        <Text style={styles.subheading}>Closed cases you handled</Text>
         <View style={styles.divider} />
       </View>
 
@@ -27,8 +27,8 @@ export default function IncidentScreen({ navigation }) {
         {incidents.length === 0 ? (
           <View style={styles.emptyWrap}>
             <FontAwesome5 name="clipboard-list" size={40} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>NO INCIDENT RECORDS</Text>
-            <Text style={styles.emptyText}>Handled emergency incidents will appear here.</Text>
+            <Text style={styles.emptyTitle}>NO HISTORY YET</Text>
+            <Text style={styles.emptyText}>Cases appear here after an official closes them.</Text>
           </View>
         ) : incidents.map((incident) => (
           <TouchableOpacity key={incident.id} style={styles.card} activeOpacity={0.8} onPress={() => navigation.navigate('AlertDetails', { alertId: incident.id })}>
@@ -44,9 +44,9 @@ export default function IncidentScreen({ navigation }) {
               <FontAwesome5 name="map-marker-alt" size={13} color={colors.primary} />
               <Text style={styles.location}>{incident.location}</Text>
             </View>
-            <Text style={styles.reportText}>{incident.incidentReport ? 'Incident report submitted' : 'Incident report not yet submitted'}</Text>
+            <Text style={styles.reportText}>{incident.incidentReport ? 'Assistance report submitted' : 'No assistance report'}</Text>
             <View style={styles.detailsRow}>
-              <Text style={styles.details}>View Incident Details</Text>
+              <Text style={styles.details}>View Assistance Details</Text>
               <FontAwesome5 name="caret-right" size={17} color={colors.primary} />
             </View>
           </TouchableOpacity>

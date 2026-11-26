@@ -32,17 +32,18 @@ export default function AddUser({ route, navigation }) {
 
   async function handleCreate() {
     if (submitting) return;
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim()) {
-      Alert.alert('Missing information', 'Please enter the full name and mobile number.');
+    // Sign-in is by email code (phone sign-in is not configured), so the
+    // email is required and the mobile number is optional contact detail.
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
+      Alert.alert('Missing information', 'Please enter the full name and email address.');
       return;
     }
-    if (!/^9\d{9}$/.test(form.phone)) {
-      Alert.alert('Invalid phone number', 'Enter 10 digits starting with 9. The +63 prefix is added automatically.');
-      return;
-    }
-
-    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       Alert.alert('Invalid email', 'Please enter a valid email address.');
+      return;
+    }
+    if (form.phone && !/^9\d{9}$/.test(form.phone)) {
+      Alert.alert('Invalid phone number', 'Enter 10 digits starting with 9. The +63 prefix is added automatically.');
       return;
     }
 
@@ -50,7 +51,7 @@ export default function AddUser({ route, navigation }) {
     try {
       const created = await addUser({
         name: fullName,
-        phone: `+63${form.phone}`,
+        phone: form.phone ? `+63${form.phone}` : '',
         email: form.email.trim(),
         role: form.role,
         position: form.role === 'Barangay Official' ? form.position : '',
@@ -61,11 +62,7 @@ export default function AddUser({ route, navigation }) {
 
       Alert.alert(
         'User created',
-        created?.phoneVerificationRequired
-          ? `${fullName} is registered with a pending account. Ask them to request and verify a phone sign-in code; the account must then be activated by an official.`
-          : form.role === 'Guardian'
-          ? `${fullName} has been registered as a guardian. You can assign a ward later.`
-          : `${fullName} has been added as ${form.role}.`,
+        `An invitation email was sent to ${form.email.trim()}. The account stays inactive until ${fullName} opens the email link; then activate it from Manage Users.${form.role === 'Guardian' ? ' Link wards from each resident\'s profile.' : ''}`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (err) {
@@ -89,12 +86,12 @@ export default function AddUser({ route, navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Field label="Enter First Name" required value={form.firstName} onChangeText={(v) => update('firstName', v)} />
         <Field label="Enter Last Name" required value={form.lastName} onChangeText={(v) => update('lastName', v)} />
-        <Text style={styles.fieldLabel}>Enter Phone Number<Text style={styles.required}>*</Text></Text>
+        <Field label="Email Address" required value={form.email} onChangeText={(v) => update('email', v)} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
+        <Text style={styles.fieldLabel}>Phone Number (optional)</Text>
         <View style={styles.phoneRow}>
             <View style={styles.countryCode}><Text style={styles.countryCodeText}>+63</Text></View>
             <TextInput style={styles.phoneInput} placeholder="9XX-XXX-XXXX" keyboardType="number-pad" maxLength={10} value={form.phone} onChangeText={(v) => update('phone', v.replace(/[^0-9]/g, ''))} />
         </View>
-        <Field label="Email (optional)" value={form.email} onChangeText={(v) => update('email', v)} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
 
         <View style={styles.fieldWrap}>
           <Text style={styles.fieldLabel}>Select User Role<Text style={styles.required}>*</Text></Text>
@@ -134,7 +131,6 @@ export default function AddUser({ route, navigation }) {
           </View>
         )}
 
-        <Field label="Home Address" value={form.address} onChangeText={(v) => update('address', v)} placeholder="House no., street, purok/subdivision" />
 
         <View style={styles.fieldWrap}>
           <Text style={styles.fieldLabel}>Barangay</Text>

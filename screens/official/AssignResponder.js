@@ -7,67 +7,66 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import TabBar from "../../components/tabs/TabButtons";
 import { useAppData } from "../../contexts/AppDataContext";
+import ReasonPromptModal from "../../components/modals/ReasonPromptModal";
 
 
 export default function AssignResponder({ route, navigation }) {
   const { alerts, users, assignResponder, account } = useAppData();
   const alert = alerts.find((item) => item.id === (route.params?.alertId || route.params?.incidentId));
   const [selected, setSelected] = useState(null);
-  const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [reasonPrompt, setReasonPrompt] = useState(false);
+  // A pending or accepted assignment must be replaced with a recorded reason.
+  const isReassign = !!alert?.responderId && ['pending_acceptance', 'accepted'].includes(alert?.assignment_status);
 
+  // Availability uses only what the server tracks: whether the account is
+  // active (inactive accounts are rejected) and how many open cases the
+  // responder already holds. There are no duty schedules in the backend.
   const responders = useMemo(() => users
     .filter((user) => user.role === 'Barangay Responder')
     .map((user) => {
-      const hasOtherActiveAssignment = alerts.some(
+      const openCases = alerts.filter(
         (item) => item.id !== alert?.id && item.responderId === user.id && item.status !== 'closed'
-      );
-      const configured = user.status === 'Inactive' ? 'Off Duty' : null;
-      const availability = configured === 'Off Duty'
-        ? 'Off Duty'
-        : hasOtherActiveAssignment
-          ? 'On another incident'
-          : 'Available';
-      return { ...user, availability };
-    }), [users, alerts, alert?.id]);
-  if (!alert) return <SafeAreaView><Text onPress={() => navigation.goBack()}>‹ Back</Text><Text>Alert not found.</Text></SafeAreaView>;
+      ).length;
+      const current = user.id === alert?.responderId && isReassign;
+      const inactive = user.status !== 'Active';
+      const availability = current ? 'Currently assigned'
+        : inactive ? 'Account inactive'
+        : openCases ? `${openCases} open assignment${openCases === 1 ? '' : 's'}`
+        : 'No open assignments';
+      return { ...user, availability, selectable: !current && !inactive, idle: !current && !inactive && !openCases };
+    }), [users, alerts, alert?.id, alert?.responderId, isReassign]);
+  if (!alert) return <SafeAreaView><Text onPress={() => navigation.goBack()}>‹ Back</Text><Text>Request not found.</Text></SafeAreaView>;
 
-  async function handleConfirm() {
-    if (submitting) return;
-    if (!selected) {
-      Alert.alert('Select a responder', 'Please select an available responder first.');
-      return;
-    }
+  async function assign(reason = null) {
     setSubmitting(true);
-    try { await assignResponder(alert.id, selected.id); setConfirmed(true); }
-    catch (err) { Alert.alert('Could not assign responder', err.message); }
+    try {
+      const reassigned = isReassign;
+      await assignResponder(alert.id, selected.id, reason);
+      setReasonPrompt(false);
+      Alert.alert(reassigned ? 'Responder reassigned' : 'Responder assigned', `${selected.name} was notified and must accept the assignment.`);
+      navigation.navigate('AlertDetails', { alertId: alert.id });
+    }
+    catch (err) { Alert.alert(isReassign ? 'Could not reassign responder' : 'Could not assign responder', err.message); }
     finally { setSubmitting(false); }
   }
 
-  if (confirmed) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.successContent}>
-          <View style={styles.successIcon}><FontAwesome5 name="check" size={42} color={colors.onPrimary} /></View>
-          <Text style={styles.successTitle}>Responder Assigned</Text>
-          <Text style={styles.successText}>{selected.name} has been assigned to this alert.</Text>
-          <View style={styles.successCard}><Avatar uri={selected.photoUrl} name={selected.name} style={styles.photo} /><View><Text style={styles.cardTitle}>{selected.name}</Text><Text style={styles.small}>Barangay Responder</Text><Text style={styles.available}>● Assigned</Text></View></View>
-          <Text style={styles.section}>Alert Information</Text>
-          <View style={styles.card}><Text style={styles.cardTitle}>{alert.residentName}</Text><Text style={styles.small}>{alert.residentType}</Text><Text style={styles.small}>{alert.residentId}</Text><Text style={styles.location}>📍 {alert.location}</Text><Text style={styles.small}>{alert.scannedAt}</Text></View>
-          <View style={styles.notice}><FontAwesome5 name="bell" size={17} color={colors.primary} /><Text style={styles.noticeText}>The responder has been notified of this emergency.</Text></View>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('AlertDetails', { alertId: alert.id })}><Text style={styles.primaryText}>View Alert Status</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('AlertScreen', { filter: 'all' })}><Text style={styles.secondaryText}>Back to Alert List</Text></TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
-    );
+  function handleConfirm() {
+    if (submitting) return;
+    if (!selected) {
+      Alert.alert('Select a responder', 'Please select a responder first.');
+      return;
+    }
+    if (isReassign) { setReasonPrompt(true); return; }
+    assign();
   }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.back} onPress={() => navigation.goBack()}>‹ Back</Text>
-        <Text style={styles.heading}>Assign Responder</Text>
-        <Text style={styles.subheading}>Select an available responder for this alert.</Text>
+        <Text style={styles.heading}>{isReassign ? 'Reassign Responder' : 'Assign Responder'}</Text>
+        <Text style={styles.subheading}>{isReassign ? `Currently assigned: ${alert.responderName || 'a responder'}. Choose a replacement.` : 'Select an available responder for this alert.'}</Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -76,12 +75,11 @@ export default function AssignResponder({ route, navigation }) {
           <View style={{ flex: 1, margin: 0 }}>
             <Text style={styles.contextTitle}>{alert.residentName}</Text>
             <Text style={styles.small}>Type: {alert.residentType}</Text>
-            <Text style={styles.small}>ID Number: {alert.residentId}</Text>
           </View>
         </View>
 
         <View style={styles.contextCard}>
-          <Text style={styles.contextTitle}> <FontAwesome5 name="map-marker-alt" size={16} color={colors.primary} />  Location (Scanned at)
+          <Text style={styles.contextTitle}> <FontAwesome5 name="map-marker-alt" size={16} color={colors.primary} />  Reported location
           </Text>
           <Text style={styles.contextText}>{alert.location}</Text>
           <Text style={styles.contextTitle}>
@@ -90,9 +88,9 @@ export default function AssignResponder({ route, navigation }) {
           <Text style={[styles.contextText, {marginBottom: 0}]}>{alert.bystanderNote || 'No note submitted.'}</Text>
         </View>
 
-        <Text style={styles.section}>Available Responders</Text>
+        <Text style={styles.section}>Responders</Text>
         {responders.map((responder) => {
-          const available = responder.availability === 'Available';
+          const available = responder.selectable;
           const isSelected = selected?.id === responder.id;
           return (
             <TouchableOpacity
@@ -110,7 +108,7 @@ export default function AssignResponder({ route, navigation }) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{responder.name}</Text>
                 <Text style={styles.small}>Barangay Responder</Text>
-                <Text style={[styles.availability, available ? styles.available : styles.unavailable]}>
+                <Text style={[styles.availability, responder.idle ? styles.available : styles.unavailable]}>
                   ● {responder.availability}
                 </Text>
               </View>
@@ -130,9 +128,12 @@ export default function AssignResponder({ route, navigation }) {
           disabled={submitting || !selected}
           onPress={handleConfirm}
         >
-          <Text style={styles.assignButtonText}>Assign Responder</Text>
+          <Text style={styles.assignButtonText}>{submitting ? 'Saving…' : isReassign ? 'Reassign Responder' : 'Assign Responder'}</Text>
         </TouchableOpacity>
-      </View>      
+      </View>
+      <ReasonPromptModal visible={reasonPrompt} title="Why are you reassigning this alert?"
+        placeholder="e.g. first responder cannot reach the location" confirmLabel="Reassign" submitting={submitting}
+        onCancel={() => setReasonPrompt(false)} onSubmit={assign} />      
       <TabBar />
     </SafeAreaView>
   );

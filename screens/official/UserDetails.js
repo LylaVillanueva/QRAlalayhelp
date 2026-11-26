@@ -12,6 +12,7 @@ import { api } from '../../services/api';
 import { useAppData } from "../../contexts/AppDataContext";
 import { FontAwesome5 } from '@expo/vector-icons';
 import TabBar from "../../components/tabs/TabButtons";
+import ReasonPromptModal from "../../components/modals/ReasonPromptModal";
 
 const ROLES = [
   { label: 'Guardian', value: 'Guardian' },
@@ -42,6 +43,7 @@ export default function UserDetails({ route, navigation }) {
   const [changingRole, setChangingRole] = useState(false);
   const [draft, setDraft] = useState(user);
   const [saving, setSaving] = useState(false);
+  const [rolePrompt, setRolePrompt] = useState(false);
   const [emailStatus, setEmailStatus] = useState(null); // null = unknown (backend update pending)
 
   useEffect(() => {
@@ -64,7 +66,11 @@ export default function UserDetails({ route, navigation }) {
   }
 
   async function saveEdit() { await run(async () => { await updateUser(draft); setEditing(false); }); }
-  async function saveRole() { await run(async () => { await changeUserRole(user.id, draft.role, draft.position); setChangingRole(false); }); }
+  // The server refuses role changes that would orphan verified guardian links,
+  // active responder cases or the last active official; a reason is recorded.
+  async function saveRole(reason) {
+    await run(async () => { await changeUserRole(user.id, draft.role, draft.position, reason); setRolePrompt(false); setChangingRole(false); });
+  }
 
   function toggleStatus() {
     if (user.status === 'Active') {
@@ -93,7 +99,7 @@ export default function UserDetails({ route, navigation }) {
           <View style={{ flex: 1, margin: 0 }}>
             <Text style={styles.contextTitle}>{user.name}</Text>
             <Text style={styles.small}>Role: {user.role}</Text>
-            <Text style={styles.small}>ID Number: {user.id}</Text>
+            <Text style={styles.small}>{user.email || 'No email on file'}</Text>
           </View>
         </View>
 
@@ -178,7 +184,7 @@ export default function UserDetails({ route, navigation }) {
               </View>
             )}
 
-            <TouchableOpacity style={[styles.actionButton, styles.dangerButton]} onPress={saveRole} disabled={saving}>
+            <TouchableOpacity style={[styles.actionButton, styles.dangerButton]} onPress={() => (draft.role === user.role ? setChangingRole(false) : setRolePrompt(true))} disabled={saving}>
               <Text style={[styles.actionText, styles.dangerText]}>{saving ? 'Saving...' : 'Change Role'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.actionButton, styles.plainButton]} onPress={() => setChangingRole(false)} disabled={saving}>
@@ -203,6 +209,9 @@ export default function UserDetails({ route, navigation }) {
           </>
         )}
       </ScrollView>
+      <ReasonPromptModal visible={rolePrompt} title={`Why change ${user.name}'s role to ${draft.role}?`}
+        placeholder="Record the reason for this role change" confirmLabel="Change Role" submitting={saving}
+        onCancel={() => setRolePrompt(false)} onSubmit={saveRole} />
       <TabBar />
     </SafeAreaView>
   );
@@ -239,8 +248,10 @@ function EditView({ draft, setDraft, onSave, onCancel, saving }) {
           </View>
         </View>
 
-        <Field label="Email" value={draft.email} onChangeText={(v) => setDraft((p) => ({ ...p, email: v }))} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" />
-        <Field label="Home Address" value={draft.address} onChangeText={(v) => setDraft((p) => ({ ...p, address: v }))} placeholder="House no., street, purok/subdivision" />
+        <View style={styles.fieldWrap}>
+          <Text style={styles.fieldLabel}>Sign-in Email</Text>
+          <Text style={styles.subheading}>{draft.email || 'Not available'} · only the account owner can change it</Text>
+        </View>
 
         {draft.role === 'Barangay Official' && (
           <View style={styles.fieldWrap}>

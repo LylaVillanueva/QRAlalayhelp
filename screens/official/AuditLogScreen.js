@@ -11,16 +11,15 @@ import { useAppData } from "../../contexts/AppDataContext";
 import { typeStyles } from "../../constants/auditTypes";
 import { Dropdown } from 'react-native-element-dropdown';
 
+// Values match the categories produced by mapAuditLog (utils/models.js).
 const filters = [
   { label: 'All Activity', value: 'all' },
-  { label: 'Account', value: 'account' },
-  { label: 'Alert Closed', value: 'alertClosed' },
-  { label: 'Alert Escalated', value: 'alertEscalated' },
-  { label: 'Alert Confirmation', value: 'alert' },
-  { label: 'Resident Update', value: 'resident' },
+  { label: 'Alert Activity', value: 'alert' },
   { label: 'Responder Assignment', value: 'assignment' },
+  { label: 'Alert Escalated', value: 'alertEscalated' },
+  { label: 'Alert Closed', value: 'alertClosed' },
+  { label: 'Resident Update', value: 'resident' },
   { label: 'User Update', value: 'user' },
-  { label: 'System', value: 'system' },
 ];
 
 export default function AuditLogScreen({ navigation }) {
@@ -34,11 +33,7 @@ export default function AuditLogScreen({ navigation }) {
   const filteredLogs = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return logs.filter((log) => {
-      const matchesFilter =
-        activeFilter === 'all' ||
-        (activeFilter === 'user' && ['account', 'user', 'resident', 'system'].includes(log.category)) ||
-        (activeFilter === 'alert' && ['alertClosed', 'alertEscalated'].includes(log.category)) ||
-        (activeFilter === 'assign' && log.category === 'assignment');
+      const matchesFilter = activeFilter === 'all' || log.category === activeFilter;
       const searchableText = [log.title, log.subject, log.detail, log.actor, log.actorRole, log.date, log.time].join(' ').toLowerCase();
       return matchesFilter && (!query || searchableText.includes(query));
     });

@@ -96,12 +96,13 @@ test('incident mapping uses scan location and retains the saved report', async (
   assert.equal(mapIncident({ home_address: 'Private home' }).location, 'Location unavailable');
 });
 
-test('guardian and responder loads never call official-only account endpoints', async () => {
+test('guardian and responder loads never call official-only account or audit endpoints', async () => {
   const { loadAppData } = await service;
   for (const role of ['guardian', 'barangay_responder']) {
     const { client, calls } = clientFixture();
     const data = await loadAppData(client, { id: 'u1', fullName: 'User', role });
-    assert.deepEqual(calls.map(([name]) => name).sort(), ['getMyProfile', 'listActiveIncidents', 'listAuditLogs', 'listBarangayContacts', 'listResidents']);
+    // list_my_audit_history and list_barangay_profiles_with_photos reject non-officials.
+    assert.deepEqual(calls.map(([name]) => name).sort(), ['getMyProfile', 'listActiveIncidents', 'listBarangayContacts', 'listResidents']);
     assert.deepEqual(calls.find(([name]) => name === 'listActiveIncidents')[1], { includeClosed: true });
     assert.deepEqual(data.alerts, []);
     assert.deepEqual(data.residents, []);
@@ -171,4 +172,39 @@ test('no-guardian review stays active and requires the assigned responder report
   assert.equal(mapIncident({ ...reported, assigned_responder_id: 'r2' }).readyForReview, false);
   assert.equal(mapIncident({ ...reported, guardian_required: true }).officialReviewRequired, false);
   assert.equal(mapIncident({ ...reported, guardian_required: true, guardian_decision: 'safe' }).readyForReview, true);
+});
+
+test('a signed-in guardian treats every returned resident as a verified ward', async () => {
+  const { loadAppData } = await service;
+  const { client } = clientFixture();
+  // Resident 2 lists another guardian as its most recently verified one.
+  client.listResidents = async () => [
+    { id: 'r1', full_name: 'Ward One', guardian_id: 'g1' },
+    { id: 'r2', full_name: 'Ward Two', guardian_id: 'other-guardian' },
+  ];
+  const data = await loadAppData(client, { id: 'g1', fullName: 'Guardian', role: 'guardian' });
+  assert.deepEqual(data.users[0].wardIds, ['r1', 'r2']);
+});
+
+test('Supabase audit rows map actor, subject, category and reason', async () => {
+  const { mapAuditLog, mapResident } = await models;
+  const residents = [mapResident({ id: 'res-1', full_name: 'Fictional Resident' })];
+  const users = [{ id: 'off-1', name: 'Official One', role: 'Barangay Official' }];
+  const incidents = [{ id: 'case-1', resident_id: 'res-1' }];
+  const base = { audit_id: 'a1', actor_id: 'off-1', actor_name: 'Official One', created_at: '2026-11-26T01:00:00Z' };
+  const closed = mapAuditLog({ ...base, action: 'assistance_case.closed', target_type: 'assistance_case', target_id: 'case-1', result: 'success' }, users, residents, incidents);
+  assert.equal(closed.id, 'a1');
+  assert.equal(closed.category, 'alertClosed');
+  assert.equal(closed.title, 'Assistance case closed');
+  assert.equal(closed.subject, 'Fictional Resident');
+  assert.equal(closed.actor, 'Official One');
+  assert.equal(closed.actorRole, 'Barangay Official');
+  assert.equal(closed.detail, '');
+  const assigned = mapAuditLog({ ...base, action: 'responder.assigned', target_type: 'assistance_case', target_id: 'case-1', result: 'success' }, users, residents, incidents);
+  assert.equal(assigned.category, 'assignment');
+  const unreachable = mapAuditLog({ ...base, action: 'guardian.unreachable_marked', target_type: 'assistance_case', target_id: 'case-1', result: 'Called 3 times' }, users, residents, incidents);
+  assert.equal(unreachable.category, 'alert');
+  assert.equal(unreachable.detail, 'Called 3 times');
+  assert.equal(mapAuditLog({ ...base, action: 'profile.activated', target_type: 'profile', target_id: 'off-1' }, users).category, 'user');
+  assert.equal(mapAuditLog({ ...base, action: 'qr_card.issued', target_type: 'resident', target_id: 'res-1' }, users, residents).category, 'resident');
 });

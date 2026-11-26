@@ -8,13 +8,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useAppData } from "../../contexts/AppDataContext";
 
-const EMERGENCY_OPTIONS = ['Fall', 'Disorientation', 'Seizure', 'Medical emergency', 'Injury', 'Other'];
-const CONDITION_OPTIONS = ['Normal', 'Stable', 'Critical', 'Unresponsive', 'Other'];
+// Plain observations a responder can make without a medical diagnosis. They
+// are saved as text; the outcome values below are the backend's own.
+const EMERGENCY_OPTIONS = ['Lost or wandering', 'Confused or disoriented', 'Fell', 'Visibly injured', 'Appeared unwell', 'Other'];
+const CONDITION_OPTIONS = ['Calm and responsive', 'Upset or distressed', 'Visibly injured', 'Not responding', 'Other'];
 const OUTCOME_OPTIONS = [
-  ['reunited', 'Reunited'],
-  ['assisted_independently', 'Assisted independently'],
-  ['referred', 'Referred'],
-  ['transferred', 'Transferred'],
+  ['reunited', 'Reunited with guardian or family'],
+  ['assisted_independently', 'Assisted; no handover needed'],
+  ['referred', 'Referred to another service'],
+  ['transferred', 'Transferred to another agency'],
 ];
 
 export default function IncidentReportScreen({ route, navigation }) {
@@ -30,13 +32,14 @@ export default function IncidentReportScreen({ route, navigation }) {
   const [conditionOtherText, setConditionOtherText] = useState('');
   const [outcome, setOutcome] = useState(null);
   const [handoverDetails, setHandoverDetails] = useState('');
-  const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const natureFinal = natureOfEmergency === 'Other' ? natureOtherText.trim() : natureOfEmergency;
   const conditionFinal = residentCondition === 'Other' ? conditionOtherText.trim() : residentCondition;
 
-  const readOnly = !linkedAlert || linkedAlert.responderId !== account.id || ['closed', 'resolved', 'cancelled'].includes(linkedAlert.backendStatus);
+  // The server accepts reports only from the responder whose assignment is accepted.
+  const readOnly = !linkedAlert || linkedAlert.responderId !== account.id || linkedAlert.assignment_status !== 'accepted'
+    || ['closed', 'resolved', 'cancelled'].includes(linkedAlert.backendStatus);
   const needsHandover = ['reunited', 'referred', 'transferred'].includes(outcome);
   const canSubmit = !readOnly && !!natureFinal && actionsTaken.trim() && !!conditionFinal && !!outcome
     && (!needsHandover || handoverDetails.trim().length >= 3);
@@ -49,50 +52,21 @@ export default function IncidentReportScreen({ route, navigation }) {
       outcome, handoverDetails: handoverDetails.trim() || null };
     if (Object.values(report).join(' ').length > 1900) { Alert.alert('Report too long', 'Shorten the report to fewer than 1,900 characters.'); return; }
     setSubmitting(true);
-    try { await addIncidentReport(alertId, report); setSubmitted(true); }
+    try {
+      await addIncidentReport(alertId, report);
+      Alert.alert('Assistance report submitted', 'A barangay official will review it before closing the case.');
+      navigation.navigate('AlertDetails', { alertId });
+    }
     catch (err) { Alert.alert('Could not submit report', err.message); }
     finally { setSubmitting(false); }
-  }
-
-  if (submitted) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContent}>
-          <View style={styles.resultIconWrap}>
-            <FontAwesome5 name="check" size={55} color={colors.onPrimary} />
-          </View>
-
-          <Text style={styles.resultHeading}>Report Submitted</Text>
-          <Text style={styles.resultSubheading}>Your report has been saved. Alerts without a guardian remain open until a barangay official reviews and closes them.</Text>
-
-          <View style={[styles.residentCard, { marginBottom: 48 }]}>
-            <Avatar uri={resident.photoUrl} name={resident.name} style={styles.residentPhoto} />
-            <View style={styles.residentTextWrap}>
-              <Text style={styles.residentName}>{resident.name}</Text>
-              <Text style={styles.residentMeta}>ID: {resident.id}</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity 
-            style={[styles.button, styles.blueButton, { marginBottom: 8 }]} 
-            onPress={() => navigation.navigate('AlertDetails', { alertId })}
-          >
-            <Text style={[styles.backButtonText, styles.blueText]}>View Report</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Home')}>
-            <Text style={styles.backButtonText}>Back to Home</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
   }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.back} onPress={() => navigation.goBack()}>‹ Back</Text>
-        <Text style={styles.heading}>INCIDENT SUMMARY NOTES</Text>
-        <Text style={styles.subheading}>Report Details</Text>
+        <Text style={styles.heading}>ASSISTANCE REPORT</Text>
+        <Text style={styles.subheading}>Describe only what you observed and did</Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -100,16 +74,15 @@ export default function IncidentReportScreen({ route, navigation }) {
           <Avatar uri={resident.photoUrl} name={resident.name} style={styles.residentPhoto} />
           <View style={styles.residentTextWrap}>
             <Text style={styles.residentName}>{resident.name}</Text>
-            <Text style={styles.residentMeta}>ID: {resident.id}</Text>
           </View>
         </View>
 
         {linkedAlert?.incidentReport ? (
-          <Text style={styles.previousNote}>Previous summary: {linkedAlert.incidentReport}</Text> 
+          <Text style={styles.previousNote}>Previous report: {linkedAlert.incidentReport}</Text> 
         ) : null}
 
-        {readOnly && <Text style={styles.previousNote}>This report is read-only. Only the assigned responder can update an incident that still accepts reports.</Text>}
-        <Text style={styles.fieldLabel}>Nature of Emergency <Text style={styles.required}>*</Text></Text>
+        {readOnly && <Text style={styles.previousNote}>This report is read-only. Only the responder who accepted this assignment can submit a report while the alert is open.</Text>}
+        <Text style={styles.fieldLabel}>Reason for Assistance <Text style={styles.required}>*</Text></Text>
         <View style={styles.chipWrap}>
           {EMERGENCY_OPTIONS.map((opt) => (
             <TouchableOpacity
@@ -124,7 +97,7 @@ export default function IncidentReportScreen({ route, navigation }) {
         {natureOfEmergency === 'Other' && (
           <TextInput
             style={[styles.input, { marginTop: 8 }]}
-            placeholder="Describe the nature of the emergency"
+            placeholder="Describe the situation"
             placeholderTextColor={colors.textMuted}
             value={natureOtherText}
             onChangeText={setNatureOtherText}
@@ -142,7 +115,7 @@ export default function IncidentReportScreen({ route, navigation }) {
           numberOfLines={4}
         />
 
-        <Text style={styles.fieldLabel}>Condition of Resident <Text style={styles.required}>*</Text></Text>
+        <Text style={styles.fieldLabel}>Resident's Condition (as observed) <Text style={styles.required}>*</Text></Text>
         <View style={styles.chipWrap}>
           {CONDITION_OPTIONS.map((opt) => (
             <TouchableOpacity

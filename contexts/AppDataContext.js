@@ -53,7 +53,8 @@ export function AppDataProvider({ children, session }) {
 
     refresh();
 
-    const timer = setInterval(() => { if (AppState.currentState === 'active') refresh(); }, 15000);
+    // Realtime broadcasts and returning to the app trigger refreshes; this is only a fallback.
+    const timer = setInterval(() => { if (AppState.currentState === 'active') refresh(); }, 60000);
     const listener = AppState.addEventListener('change', (state) => { if (state === 'active') refresh(); });
     return () => { generation.current += 1; clearInterval(timer); listener.remove(); };
   }, [refresh, account]);
@@ -72,17 +73,6 @@ export function AppDataProvider({ children, session }) {
     return () => { active = false; unsubscribe?.(); };
   }, [account?.id, refresh]);
 
-  // While a bystander is actively sharing live location on any alert, poll
-  // faster so open alert maps follow them. A share whose last update is
-  // over two minutes old (page closed without tapping Stop) doesn't count.
-  const liveSharing = data.alerts.some((alert) => alert.live_location_sharing
-    && Date.now() - new Date(alert.live_location_updated_at).getTime() < 120000);
-  useEffect(() => {
-    if (!liveSharing) return undefined;
-    const timer = setInterval(() => { if (AppState.currentState === 'active') refresh(); }, 5000);
-    return () => clearInterval(timer);
-  }, [liveSharing, refresh]);
-
   const mutate = async (request) => {
     const result = await request();
     if (inFlight.current) await inFlight.current;
@@ -94,15 +84,17 @@ export function AppDataProvider({ children, session }) {
 
   return (
     <AppDataContext.Provider value={{ ...data, account, loading, error, hasLoaded, refresh, addUser,
+      // Sign-in email is not editable here: another user's email can only be
+      // changed through that user's own verified Auth flow.
       updateUser: (user) => mutate(() => api.updateAccount(user.id, {
-        fullName: user.name.trim(), phone: normalizePhone(user.phone), email: user.email?.trim() || null,
+        fullName: user.name.trim(), phone: normalizePhone(user.phone),
         position: user.role === 'Barangay Official' ? user.position || null : null,
         homeAddress: user.address?.trim() || null,
       })),
-      changeUserRole: (id, role, position) => mutate(() => api.changeAccountRole(id, { role: API_ROLES[role], position: position || null })),
+      changeUserRole: (id, role, position, reason) => mutate(() => api.changeAccountRole(id, { role: API_ROLES[role], position: position || null, reason })),
       deactivateUser: (id) => mutate(() => api.setAccountActive(id, false)),
       activateUser: (id) => mutate(() => api.setAccountActive(id, true)),
-      assignResponder: (id, responderId) => mutate(() => api.assignResponder(id, responderId)),
+      assignResponder: (id, responderId, reason) => mutate(() => api.assignResponder(id, responderId, reason)),
       updateAlertConfirmation: (id, role, status) => mutate(() => api.submitIncidentConfirmation(id, {
         decision: status === 'Safe' ? 'safe' : 'not_safe',
       })),

@@ -11,7 +11,7 @@ import { useAppData } from "../../contexts/AppDataContext";
 import { typeStyles } from '../../constants/auditTypes';
 
 export default function HomeScreen({ navigation }) {
-  const { alerts, users, residents, account, auditLogs, myPhotoUrl } = useAppData();
+  const { alerts, users, residents, account, myPhotoUrl } = useAppData();
 
   const guardianAccount = useMemo(() => users.find((user) => user.id === account.id), [users, account.id]);
   const wardIds = guardianAccount?.wardIds || [];
@@ -24,17 +24,6 @@ export default function HomeScreen({ navigation }) {
   );
   const currentAlert = myAlerts[0];
 
-  const recentActivity = useMemo(
-    () =>
-      auditLogs
-        .filter((entry) => {
-          const isWardEntry = entry.residentId && wardIds.includes(entry.residentId);
-          const isMyAction = entry.actorRole === 'Guardian' && entry.actor_id === account.id;
-          return isWardEntry || isMyAction;
-        })
-        .slice(0, 3),
-    [auditLogs, wardIds, account.id]
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -43,23 +32,27 @@ export default function HomeScreen({ navigation }) {
           <Avatar uri={myPhotoUrl} style={styles.photo} />
           <View style={{ flex: 1, marginTop: 3 }}>
             <Text style={styles.subheading}>Welcome, {account.fullName}</Text>
-            <Text style={styles.roleLine}>{'Barangay Guardian'} • {account.barangayName}</Text>
+            <Text style={styles.roleLine}>{'Guardian'} • {account.barangayName}</Text>
           </View>
         </View>
         <View style={styles.divider} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <TouchableOpacity style={[styles.button, styles.buttonNotSafe, { flex: 0, marginBottom: 14 }]} onPress={() => navigation.navigate('EmergencyHelp')}
+          accessibilityRole="button" accessibilityLabel="Call Barangay or 911">
+          <Text style={[styles.buttonText, styles.notSafeText]}>Call Barangay / 911</Text>
+        </TouchableOpacity>
         {!currentAlert ? (
           <View style={styles.emptyCard}>
             <FontAwesome5 name="check-circle" size={24} color={colors.successInk} />
-            <Text style={styles.emptyTitle}>No active alerts</Text>
-            <Text style={styles.emptyText}>Always remember to keep your ward safe and healthy.</Text>
+            <Text style={styles.emptyTitle}>No active assistance requests</Text>
+            <Text style={styles.emptyText}>You will be notified here when someone requests assistance for your resident.</Text>
           </View>
         ) : (
           <>
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionTitle, styles.overviewTitle]}>Active Ward Alert</Text>
+              <Text style={[styles.sectionTitle, styles.overviewTitle]}>Active Assistance</Text>
               <View style={styles.alertCount}>
                 <Text style={styles.alertCountText}>{myAlerts.length}</Text>
               </View>
@@ -67,23 +60,20 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.alertCard, styles.alertCardActive]}>
               <View style={styles.alertCardTextWrap}>
                 <Text style={[styles.alertCardTitle, statusStyle(currentAlert.status)]}>
-                  {currentAlert.status === 'escalated' ? 'Alert Escalated'
-                    : currentAlert.status === 'closed' ? 'Alert Closed'
-                    : currentAlert.status === 'pending' ? 'Alert Pending'
-                    : 'Open Alert'}
+                  {alertStageLabel(currentAlert.status)}
                 </Text>
                 <Text style={styles.alertTime}>{currentAlert.scannedAt}</Text>
               </View>
 
               <Text style={styles.heading1}>{currentAlert.residentName}</Text>
               <Text style={styles.typeText}>{currentAlert.residentType}</Text>
-              <Text style={styles.alertSubtitle}>Scanned by {currentAlert.scannedBy || 'a Bystander'}</Text>
+              <Text style={styles.alertSubtitle}>Reported by {currentAlert.scannedBy}</Text>
 
               {currentAlert.location ? (
                 <View style={styles.locationBox}>
                   <FontAwesome5 name="map-marker-alt" size={14} color={colors.primary} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.locationLabel}>QR scanned at</Text>
+                    <Text style={styles.locationLabel}>Reported location</Text>
                     <Text style={styles.locationText}>{currentAlert.location}</Text>
                   </View>
                 </View>
@@ -113,7 +103,7 @@ export default function HomeScreen({ navigation }) {
                       resident: { name: currentAlert.residentName, id: currentAlert.residentId },
                     })}
                   >
-                    <Text style={[styles.buttonText, styles.safeText]}>Mark Safe</Text>
+                    <Text style={[styles.buttonText, styles.safeText]}>Report Safe</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -129,13 +119,13 @@ export default function HomeScreen({ navigation }) {
                       resident: { name: currentAlert.residentName, id: currentAlert.residentId },
                     })}
                   >
-                    <Text style={[styles.buttonText, styles.notSafeText]}>Mark Not Safe</Text>
+                    <Text style={[styles.buttonText, styles.notSafeText]}>Report Not Safe</Text>
                   </TouchableOpacity>
                 </View>
               )}
 
               <TouchableOpacity style={styles.detailsButton} onPress={() => navigation.navigate('AlertDetails', { alertId: currentAlert.id })}>
-                <Text style={styles.detailsText}>Tap for Full Details</Text>
+                <Text style={styles.detailsText}>View Assistance Details</Text>
                 <FontAwesome5 name="caret-right" size={18} color={colors.primary} />
               </TouchableOpacity>
             </View>
@@ -144,13 +134,13 @@ export default function HomeScreen({ navigation }) {
 
         <View style={styles.divider} />
         <View style={styles.headerRow}>
-          <Text style={styles.sectionTitle}>My Wards</Text>
+          <Text style={styles.sectionTitle}>My Residents</Text>
           <TouchableOpacity onPress={() => navigation.navigate('ResidentScreen')}><Text style={styles.viewAll}>View All ›</Text></TouchableOpacity>
         </View>
 
         {myWards.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No wards found linked to this account</Text>
+            <Text style={styles.emptyTitle}>No residents are linked to this account yet</Text>
           </View>
         ) : (
           myWards.map((ward) => (
@@ -164,44 +154,13 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.residentTextWrap}>
               <Text style={styles.residentName}>{ward.name}</Text>
               <Text style={styles.residentMeta}>{ward.type}</Text>
-              <Text style={styles.residentMeta}>{ward.code || 'No card number yet'}</Text>
+              {ward.address ? <Text style={styles.residentMeta}>{ward.address}</Text> : null}
             </View>
             <FontAwesome5 name="chevron-right" size={13} color={colors.textSecondary} />
           </TouchableOpacity>
           ))
         )}
 
-        <View style={styles.divider} />
-        <View style={styles.headerRow}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('AuditLogScreen')}><Text style={styles.viewAll}>View All ›</Text></TouchableOpacity>
-        </View>
-
-        {recentActivity.length === 0 ? (
-          <Text style={styles.emptyListText}>No recent activity yet.</Text>
-        ) : (
-        <View style={[styles.headCard, styles.shadow]}>
-          {recentActivity.map((item, index) => {
-            const type = typeStyles[item.category] || typeStyles.system;
-            return (
-              <React.Fragment key={item.id || index}>
-                <View style={styles.activityRow}>
-                  <View style={[styles.activityIcon, { backgroundColor: type.background }]}>
-                    <FontAwesome5 name={type.icon} size={13} color={type.color} />
-                  </View>
-                  <View style={{ flex: 1, paddingRight: 6 }}>
-                    <Text style={styles.activityTitle}>{item.title}</Text>
-                    <Text style={styles.activityDetail}>{item.subject}</Text>
-                    <Text style={styles.activityDetail}>{item.detail}</Text>
-                  </View>
-                  <Text style={styles.activityTime}>{item.time}</Text>
-                </View>
-                {index < recentActivity.length - 1 && <View style={styles.activityDivider} />}
-              </React.Fragment>
-            );
-          })}
-        </View>
-        )}
       </ScrollView>
       <TabBar />
     </SafeAreaView>

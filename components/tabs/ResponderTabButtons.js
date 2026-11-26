@@ -3,16 +3,16 @@ import TabBar from './TabBar';
 
 const tabs = [
   { key: 'home', labelKey: 'home', screen: 'Home', icon: 'home' },
-  { key: 'alerts', labelKey: 'alerts', screen: 'AlertScreen', icon: 'bell' },
-  { key: 'incidents', labelKey: 'incidents', screen: 'IncidentScreen', icon: 'clipboard-list' },
+  { key: 'alerts', labelKey: 'assignments', screen: 'AlertScreen', icon: 'clipboard-check' },
+  { key: 'incidents', labelKey: 'history', screen: 'IncidentScreen', icon: 'history' },
   { key: 'settings', labelKey: 'settings', screen: 'SettingsScreen', icon: 'cog' },
 ];
 
 const activeMap = {
   AlertDetails: 'alerts',
   ConfirmationScreen: 'alerts',
-  IncidentReportScreen: 'incidents',
-  AuditLogScreen: 'incidents',
+  IncidentReportScreen: 'alerts',
+  ProfileScreen: 'alerts',
 };
 
 export default function ResponderTabBar() {
