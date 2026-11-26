@@ -40,3 +40,7 @@ yarn-error.*
 /ios
 /android
 .env
+# Firebase / FCM: never commit service-account keys; google-services.json is kept local and supplied to EAS separately
+google-services.json
+*-firebase-adminsdk-*.json
+fcm-service-account*.json

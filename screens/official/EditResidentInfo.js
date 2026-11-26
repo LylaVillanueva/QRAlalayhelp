@@ -36,7 +36,9 @@ export default function EditResidentScreen({ route, navigation }) {
       Alert.alert('Resident updated', 'The resident information has been saved.');
       navigation.goBack();
     } catch (err) {
-      Alert.alert('Could not save resident', err.message);
+      Alert.alert('Could not save resident', err.code === 'BACKEND_UPDATE_PENDING'
+        ? 'Saving resident edits needs a backend update that is not deployed yet. No information was changed.'
+        : err.message);
     } finally {
       setSaving(false);
     }

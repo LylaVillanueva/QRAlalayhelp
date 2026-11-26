@@ -674,8 +674,10 @@ export const supabaseApi = {
     return { id: residentId, full_name: input.fullName, resident_category: input.residentType || null };
   },
 
+  // Partial update only. The older full-row RPC overwrote every column,
+  // including fields this app never edits (assistance instructions and the
+  // public-disclosure approval), so it is deliberately not used as a fallback.
   async updateResident(residentId, input) {
-    // Preferred: send only the changed fields (backend partial update).
     const FIELD_MAP = { fullName: 'full_name', phone: 'phone', homeAddress: 'address', residentType: 'resident_category',
       displayName: 'display_name', assistanceInstructions: 'assistance_instructions', dateOfBirth: 'date_of_birth' };
     const changes = {};
@@ -683,38 +685,9 @@ export const supabaseApi = {
       if (input[key] !== undefined) changes[column] = typeof input[key] === 'string' ? (input[key].trim() || null) : input[key];
     }
     if (changes.full_name === null) throw new Error('Full name is required.');
+    if (!Object.keys(changes).length) throw new Error('There are no changes to save.');
     const patched = await optionalRpc('update_resident_fields', { p_resident_id: residentId, p_changes: changes });
-    if (!patched.unavailable) return this.getResident(residentId);
-
-    // Until the partial update is deployed, the full-row RPC is used and every
-    // field the caller didn't send keeps its current value.
-    const full = await optionalRpc('get_resident_edit_details', { p_resident_id: residentId });
-    const record = rows(full.data)[0];
-    const listed = record ? null : await this.getResident(residentId);
-    const current = record ? {
-      phone: record.phone, address: record.address, category: record.resident_category,
-      displayName: record.display_name, birthDate: record.date_of_birth,
-      instructions: record.assistance_instructions, disclosureApproved: record.public_disclosure_approved === true,
-      disclosureReference: record.disclosure_reference,
-    } : {
-      phone: listed?.phone, address: listed?.home_address, category: listed?.resident_type,
-      displayName: listed?.display_name, birthDate: listed?.date_of_birth,
-      instructions: null, disclosureApproved: false, disclosureReference: null,
-    };
-    const keep = (value, existing) => (value === undefined ? existing || null : value || null);
-    await rpc('update_resident_with_birth_date', {
-      p_resident_id: residentId,
-      p_full_name: input.fullName,
-      p_phone: keep(input.phone, current.phone),
-      p_address: keep(input.homeAddress, current.address),
-      p_resident_category: keep(input.residentType, current.category),
-      p_display_name: keep(input.displayName, current.displayName),
-      p_assistance_instructions: keep(input.assistanceInstructions, current.instructions),
-      // Disclosure approval is never changed from the edit screen.
-      p_public_disclosure_approved: current.disclosureApproved,
-      p_disclosure_reference: current.disclosureReference,
-      p_date_of_birth: keep(input.dateOfBirth, current.birthDate),
-    });
+    if (patched.unavailable) throw pendingError('Editing resident information');
     return this.getResident(residentId);
   },
 

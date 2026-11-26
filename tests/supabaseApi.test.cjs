@@ -333,3 +333,31 @@ test('a bystander request sends the landmark and one-time location, and status u
   assert.equal(mock.calls[1].options.body.requestToken, result.cancelToken);
   assert.equal(status.status, 'in_progress');
 });
+
+test('resident edits never fall back to the full-row overwrite', async () => {
+  const mock = fixture();
+  mock.supabase.rpc = async (name, args) => {
+    mock.calls.push({ rpc: name, args });
+    if (name === 'update_resident_fields') return { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } };
+    return { data: [], error: null };
+  };
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await assert.rejects(() => supabaseApi.updateResident('res-1', { fullName: 'Fictional Resident', homeAddress: 'Purok 1' }),
+    (error) => error.code === 'BACKEND_UPDATE_PENDING');
+  assert.deepEqual(mock.calls.map((call) => call.rpc), ['update_resident_fields']);
+});
+
+test('resident edits send only the edited fields', async () => {
+  const mock = fixture();
+  mock.supabase.storage = { from: () => ({ createSignedUrls: async () => ({ data: [], error: null }) }) };
+  mock.supabase.rpc = async (name, args) => {
+    mock.calls.push({ rpc: name, args });
+    if (name === 'update_resident_fields') return { data: [{ resident_id: 'res-1' }], error: null };
+    return { data: [{ resident_id: 'res-1', full_name: 'Fictional Resident' }], error: null };
+  };
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await supabaseApi.updateResident('res-1', { fullName: ' Fictional Resident ', dateOfBirth: '1950-01-31' });
+  const call = mock.calls.find((item) => item.rpc === 'update_resident_fields');
+  assert.deepEqual(call.args, { p_resident_id: 'res-1', p_changes: { full_name: 'Fictional Resident', date_of_birth: '1950-01-31' } });
+  assert.equal(mock.calls.some((item) => /update_resident_with_birth_date|^update_resident$/.test(item.rpc)), false);
+});
