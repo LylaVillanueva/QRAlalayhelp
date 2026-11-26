@@ -250,7 +250,7 @@ test('a declined assignment can be assigned again without a reason', async () =>
   assert.ok(mock.calls.some((item) => item.rpc === 'assign_responder'));
 });
 
-test('a new guardian is invited without wards, then linked and verified by link id', async () => {
+test('a new guardian is invited and linked as pending; nothing is verified automatically', async () => {
   const mock = fixture();
   const rpc = mock.supabase.rpc;
   mock.supabase.rpc = async (name, args) => {
@@ -265,12 +265,65 @@ test('a new guardian is invited without wards, then linked and verified by link 
   });
   const invite = mock.calls.find((item) => item.name === 'invite-account');
   assert.equal('wardIds' in invite.options.body, false);
-  assert.equal(invite.options.body.role, 'guardian');
   const link = mock.calls.find((item) => item.rpc === 'create_guardian_link');
   assert.deepEqual(link.args, { p_resident_id: 'res-1', p_guardian_profile_id: 'profile-123', p_relationship: 'Child' });
-  const review = mock.calls.find((item) => item.rpc === 'review_guardian_link');
-  assert.equal(review.args.p_link_id, 'link-1');
-  assert.equal(review.args.p_decision, 'verified');
+  assert.equal(mock.calls.some((item) => item.rpc === 'review_guardian_link'), false);
+});
+
+test('an existing guardian is linked as pending; nothing is verified automatically', async () => {
+  const mock = fixture();
+  const rpc = mock.supabase.rpc;
+  mock.supabase.rpc = async (name, args) => {
+    if (name === 'create_resident_with_birth_date') return { data: 'res-2', error: null };
+    if (name === 'create_guardian_link') { mock.calls.push({ rpc: name, args }); return { data: 'link-2', error: null }; }
+    return rpc(name, args);
+  };
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await supabaseApi.enrollResident({ fullName: 'Fictional Resident', guardianId: 'guardian-9', relationship: 'Spouse', guardianVerifiedByOfficial: true });
+  assert.ok(mock.calls.some((item) => item.rpc === 'create_guardian_link'));
+  assert.equal(mock.calls.some((item) => item.rpc === 'review_guardian_link'), false);
+});
+
+test('verifying a guardian relationship requires the official\'s own reason', async () => {
+  const mock = fixture();
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await assert.rejects(() => supabaseApi.verifyGuardianLink('link-1', '  '), /Record how/);
+  assert.equal(mock.calls.some((item) => item.rpc === 'review_guardian_link'), false);
+  await supabaseApi.verifyGuardianLink('link-1', '  Checked barangay ID in person ');
+  const call = mock.calls.find((item) => item.rpc === 'review_guardian_link');
+  assert.deepEqual(call.args, { p_link_id: 'link-1', p_decision: 'verified', p_reason: 'Checked barangay ID in person' });
+});
+
+function exportFixture(status, body) {
+  const mock = fixture();
+  mock.supabase.functions.invoke = async (name, options) => {
+    mock.calls.push({ name, options });
+    if (status === 200) return { data: { data: body }, error: null };
+    return { data: null, error: { message: 'Edge Function returned a non-2xx status code', context: { status, json: async () => body } } };
+  };
+  return mock;
+}
+
+test('QR re-export returns the existing card and never issues a replacement', async () => {
+  const mock = exportFixture(200, { cardId: 'card-1', publicUrl: 'https://www.qralalay.app/scan/abc' });
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  const card = await supabaseApi.exportExistingQr({ cardId: 'card-1' });
+  assert.deepEqual(card, { id: 'card-1', publicUrl: 'https://www.qralalay.app/scan/abc', publicScanUrl: 'https://www.qralalay.app/scan/abc' });
+  assert.deepEqual(mock.calls.map((call) => [call.name, call.options.body]), [['export-qr-card', { cardId: 'card-1' }]]);
+});
+
+test('QR re-export failures are reported separately and never replace the card', async () => {
+  const cases = [
+    [409, { error: { code: 'QR_EXPORT_UNAVAILABLE', message: 'This QR card predates secure re-export.' } }, 'QR_EXPORT_UNAVAILABLE'],
+    [404, { error: { code: 'QR_CARD_NOT_FOUND', message: 'The active QR card was not found.' } }, 'QR_CARD_NOT_FOUND'],
+    [404, { code: 'NOT_FOUND', message: 'Requested function was not found' }, 'BACKEND_UPDATE_PENDING'],
+  ];
+  for (const [status, body, code] of cases) {
+    const mock = exportFixture(status, body);
+    const { supabaseApi } = await loadSupabaseApi(mock);
+    await assert.rejects(() => supabaseApi.exportExistingQr({ cardId: 'card-1' }), (error) => error.code === code);
+    assert.deepEqual(mock.calls.map((call) => call.name), ['export-qr-card']);
+  }
 });
 
 test('a new guardian without an email is refused but the resident is kept', async () => {

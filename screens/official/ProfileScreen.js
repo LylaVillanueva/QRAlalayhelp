@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppData } from "../../contexts/AppDataContext";
 import TabBar from "../../components/tabs/TabButtons";
 import AppModal from "../../components/modals/AppModal";
+import ReasonPromptModal from "../../components/modals/ReasonPromptModal";
 import { Divider } from "../../components/ui";
 import { FontAwesome5 } from '@expo/vector-icons';
 
@@ -38,6 +39,7 @@ export default function ProfileScreen({ route, navigation }) {
   const [linkBusy, setLinkBusy] = useState(false);
   const [modal, setModal] = useState(null);             // { title, message, actions }
   const [linkForm, setLinkForm] = useState(null);       // { guardianId, relationship }
+  const [verifyTarget, setVerifyTarget] = useState(null); // { linkId, guardianName, relationship }
 
   const loadExtras = useCallback(async () => {
     if (!residentId) return;
@@ -104,17 +106,23 @@ export default function ProfileScreen({ route, navigation }) {
     if (!activeCard) { confirmIssue(false); return; }
     setQrBusy(true);
     try {
-      if (!activeCard.reexportable) { const legacy = new Error('legacy'); legacy.code = PENDING; throw legacy; }
+      if (!activeCard.reexportable) { const legacy = new Error('legacy'); legacy.code = 'QR_EXPORT_UNAVAILABLE'; throw legacy; }
       setQrData(await api.exportExistingQr({ cardId: activeCard.id }));
       setShowQR(true);
     } catch (err) {
+      // Never replace automatically: keeping the current card is the default.
+      const message = err.code === 'QR_EXPORT_UNAVAILABLE'
+        ? 'This card was issued before secure re-export, so it can’t be shown again. The printed card still works — keep using it. Replace it only if it is lost or damaged; the old card will then stop working.'
+        : err.code === PENDING
+        ? 'Showing an existing card needs a backend update that isn’t deployed yet. The printed card still works — keep using it.'
+        : err.code === 'QR_CARD_NOT_FOUND'
+        ? 'This resident has no active QR card. Generate one to print a card.'
+        : err.message;
       setModal({
-        title: 'Card can’t be displayed',
-        message: err.code === PENDING
-          ? 'The current card was issued, but it can’t be shown again yet. Replace it to print a new card — the old printed card will stop working.'
-          : err.message,
+        title: 'Card can’t be shown again',
+        message,
         actions: [
-          { label: 'Close', onPress: closeModal, variant: 'plain' },
+          { label: 'Keep Current Card', onPress: closeModal, variant: 'primary' },
           { label: 'Replace Card', onPress: () => confirmIssue(true), variant: 'danger' },
         ],
       });
@@ -163,24 +171,24 @@ export default function ProfileScreen({ route, navigation }) {
     } catch (err) { setLinkForm(null); notice('Could not load guardians', err.message); }
   }
 
+  // Verifying is a separate, audited official decision that records how the
+  // guardian's identity and relationship were checked.
   function confirmVerify(linkId, guardianName, relationship) {
-    setModal({
-      title: 'Verify guardian relationship?',
-      message: `Confirm that you have checked ${guardianName}'s identity and that they are this resident's ${String(relationship || 'guardian').toLowerCase()}. Once verified, they can see this resident and receive alerts.`,
-      actions: [
-        { label: 'Not Now', onPress: async () => { closeModal(); await loadExtras(); }, variant: 'plain' },
-        { label: 'Verify', variant: 'primary', onPress: async () => {
-          closeModal();
-          setLinkBusy(true);
-          try {
-            await api.verifyGuardianLink(linkId);
-            await Promise.all([loadExtras(), refresh()]);
-            notice('Relationship verified', `${guardianName} is now the verified guardian of ${resident.name}.`);
-          } catch (err) { notice('Could not verify relationship', err.message); }
-          finally { setLinkBusy(false); }
-        } },
-      ],
-    });
+    closeModal();
+    setVerifyTarget({ linkId, guardianName, relationship });
+  }
+
+  async function submitVerify(reason) {
+    const target = verifyTarget;
+    if (!target || linkBusy) return;
+    setLinkBusy(true);
+    try {
+      await api.verifyGuardianLink(target.linkId, reason);
+      setVerifyTarget(null);
+      await Promise.all([loadExtras(), refresh()]);
+      notice('Relationship verified', `${target.guardianName} is now a verified guardian of ${resident.name}. They can see this resident once their account is active.`);
+    } catch (err) { notice('Could not verify relationship', err.message); }
+    finally { setLinkBusy(false); }
   }
 
   async function submitLink() {
@@ -354,7 +362,7 @@ export default function ProfileScreen({ route, navigation }) {
           { label: linkBusy ? 'Linking…' : 'Link Guardian', onPress: submitLink, variant: 'primary', disabled: linkBusy || !linkForm?.guardianId || !linkForm?.relationship },
         ]}
       >
-        <Text style={styles.modalText}>Choose an active guardian account. You'll be asked to verify the relationship next.</Text>
+        <Text style={styles.modalText}>Choose an active guardian account. The link starts as pending; you can verify it next or later.</Text>
         {guardians.length === 0 ? (
           <Text style={styles.emptyText}>No active guardian accounts. Invite one from Manage Users.</Text>
         ) : guardians.map((guardian) => {
@@ -379,6 +387,15 @@ export default function ProfileScreen({ route, navigation }) {
         </View>
       </AppModal>
 
+      <ReasonPromptModal
+        visible={!!verifyTarget}
+        title={`Verify ${verifyTarget?.guardianName || 'guardian'} as ${String(verifyTarget?.relationship || 'guardian').toLowerCase()}? Record how you checked identity and relationship.`}
+        placeholder="e.g. checked barangay ID and birth certificate in person"
+        confirmLabel="Verify Relationship"
+        submitting={linkBusy}
+        onCancel={() => setVerifyTarget(null)}
+        onSubmit={submitVerify}
+      />
       <AppModal visible={!!modal} title={modal?.title} onClose={closeModal} actions={modal?.actions}>
         <Text style={styles.modalText}>{modal?.message}</Text>
       </AppModal>

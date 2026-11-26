@@ -143,27 +143,10 @@ export default function EnrollNewResident({ navigation, session }) {
     if (guardianMode === 'new' && form.guardianContact && !/^9\d{9}$/.test(form.guardianContact)) {
       Alert.alert('New guardian', 'Enter a 10-digit mobile number starting with 9, or leave it blank.'); return;
     }
-    if (guardianMode === 'new') {
-      Alert.alert(
-        'Confirm guardian',
-        `Confirm that you have verified ${form.guardianName.trim()}'s identity and their relationship (${form.relationship}) to this resident. An invitation email will be sent; activate their account from Manage Users after they open it.`,
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Confirm', onPress: () => { void submitEnrollment(true); } }],
-      );
-      return;
-    }
-    if (guardianMode === 'existing') {
-      const guardian = existingGuardians.find((item) => item.id === selectedGuardianId);
-      Alert.alert(
-        'Confirm guardian',
-        `Confirm that you have verified ${guardianDisplayName(guardian)}'s identity and their relationship (${form.relationship}) to this resident.`,
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Confirm', onPress: () => { void submitEnrollment(true); } }],
-      );
-      return;
-    }
-    void submitEnrollment(false);
+    void submitEnrollment();
   }
 
-  async function submitEnrollment(guardianVerifiedByOfficial) {
+  async function submitEnrollment() {
     if (loading) return;
     setLoading(true);
     try {
@@ -175,7 +158,6 @@ export default function EnrollNewResident({ navigation, session }) {
         homeAddress: form.homeAddress || undefined,
         guardianId: guardianMode === 'existing' ? selectedGuardianId : undefined,
         relationship: guardianMode === 'existing' ? form.relationship : undefined,
-        guardianVerifiedByOfficial,
         newGuardian: guardianMode === 'new' ? {
           fullName: form.guardianName.trim(),
           relation: form.relationship,
@@ -253,6 +235,9 @@ export default function EnrollNewResident({ navigation, session }) {
             <Text style={styles.qrName}>{createdResident?.full_name}</Text>
             <Text style={styles.qrDetail}>{createdResident?.resident_code}</Text>
             <Text style={styles.qrDetail}>{officialBarangayName}</Text>
+            {guardianMode === 'existing' || guardianMode === 'new' ? (
+              <Text style={styles.qrDetail}>Guardian relationship: pending verification. {guardianMode === 'new' ? 'An invitation email was sent. ' : ''}Verify it from the resident profile after checking identity and relationship.</Text>
+            ) : null}
           </View>
           <TouchableOpacity style={[styles.button, styles.shadow]} disabled={savingQr || !createdQr?.publicScanUrl} onPress={saveQrCard}>
             <Text style={styles.buttonText}>{savingQr ? 'Preparing QR Card…' : 'Save / Share QR Card'}</Text>

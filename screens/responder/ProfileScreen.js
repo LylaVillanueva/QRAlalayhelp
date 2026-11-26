@@ -13,15 +13,9 @@ import { useAppData } from "../../contexts/AppDataContext";
 import { StatusBadge } from "../../components/ui";
 
 export default function ProfileScreen({ route, navigation }) {
-  const { resident, alerts, loading, error } = useResidentProfile(route);
-  const { alerts: myCases, account } = useAppData();
-
-  // Only cases this responder was assigned to, even though the server returns
-  // the resident's whole history to any responder ever assigned to them.
-  const scanHistory = useMemo(() => {
-    const mine = new Set(myCases.filter((item) => item.responderId === account.id).map((item) => item.id));
-    return resident ? alerts.filter((alert) => mine.has(alert.id)) : [];
-  }, [alerts, resident, myCases, account.id]);
+  // list_resident_case_history is authorized server-side: a responder receives
+  // only the cases assigned to them, so the list is shown as returned.
+  const { resident, alerts: scanHistory, loading, error } = useResidentProfile(route);
 
   if (loading || error || !resident) return <ScreenState loading={loading} error={error} onBack={() => navigation.goBack()} />;
   return (

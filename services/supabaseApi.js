@@ -562,11 +562,10 @@ export const supabaseApi = {
     });
   },
 
-  async verifyGuardianLink(linkId) {
-    return rpc('review_guardian_link', {
-      p_link_id: linkId, p_decision: 'verified',
-      p_reason: 'Identity and relationship confirmed by a barangay official.',
-    });
+  async verifyGuardianLink(linkId, reason) {
+    if (!linkId) throw new Error('Choose a guardian relationship to verify.');
+    if (!reason || !reason.trim()) throw new Error('Record how the guardian’s identity and relationship were checked.');
+    return rpc('review_guardian_link', { p_link_id: linkId, p_decision: 'verified', p_reason: reason.trim() });
   },
 
   // Email-confirmed status per profile, when the backend provides it.
@@ -586,12 +585,17 @@ export const supabaseApi = {
   },
 
   // Re-exports the existing card without replacing it (authorized, audited).
+  // Re-exports the active card without rotating it. Failures never replace the
+  // card: QR_EXPORT_UNAVAILABLE (409) marks an older card that still works but
+  // cannot be shown again; a gateway 404 means the function is not deployed.
   async exportExistingQr({ cardId }) {
     if (!cardId) throw pendingError('Re-exporting an existing QR card');
     const { data, error } = await supabase.functions.invoke('export-qr-card', { body: { cardId } });
-    const status = error?.context?.status;
-    if (error && (status === 404 || status === 409)) throw pendingError(status === 409 ? 'Re-exporting this older card' : 'Re-exporting an existing QR card');
-    await functionFailure(error);
+    if (error) {
+      const failure = await functionFailure(error).catch((reason) => reason);
+      if (failure.status === 404 && failure.code !== 'QR_CARD_NOT_FOUND') throw pendingError('Re-exporting an existing QR card');
+      throw failure;
+    }
     const publicScanUrl = data?.data?.publicUrl;
     return { id: data?.data?.cardId, publicUrl: publicScanUrl, publicScanUrl };
   },
@@ -610,29 +614,20 @@ export const supabaseApi = {
     });
     try {
       if (input.guardianId) {
-        // Links start as pending; only verified links are shown on the resident
-        // and give the guardian access. The official who registers the resident
-        // verifies the link after explicitly confirming identity and relationship.
-        const linkId = await rpc('create_guardian_link', {
+        // The link starts pending and grants no access. Verifying it is a
+        // separate official action (resident profile) with its own reason.
+        await rpc('create_guardian_link', {
           p_resident_id: residentId,
           p_guardian_profile_id: input.guardianId,
           p_relationship: input.relationship || 'Guardian',
         });
-        if (input.guardianVerifiedByOfficial === true) {
-          await rpc('review_guardian_link', {
-            p_link_id: linkId,
-            p_decision: 'verified',
-            p_reason: 'Identity and relationship confirmed by the registering barangay official.',
-          });
-        }
       }
       if (input.newGuardian) {
         // Email only: phone sign-in is not configured, so a phone-only
         // guardian could never sign in.
         if (!input.newGuardian.email) throw new Error('The resident was created, but a guardian invitation needs an email address.');
-        // Invite without wardIds: an invitation-created link is pending and its
-        // id is never returned, so it could not be verified from the app. The
-        // link is created here instead, where its id is known.
+        // Invite without wardIds and create the pending link here, so the
+        // relationship appears in list_resident_guardian_links for review.
         const { data, error } = await supabase.functions.invoke('invite-account', {
           body: {
             email: input.newGuardian.email,
@@ -649,18 +644,13 @@ export const supabaseApi = {
         }
         const guardianId = data?.data?.profileId;
         if (!guardianId) throw new Error('The guardian invitation did not return an account.');
-        const linkId = await rpc('create_guardian_link', {
+        // Invitation, email confirmation, account activation and relationship
+        // verification are separate gates; sending the invitation verifies nothing.
+        await rpc('create_guardian_link', {
           p_resident_id: residentId,
           p_guardian_profile_id: guardianId,
           p_relationship: input.newGuardian.relation || 'Guardian',
         });
-        if (input.guardianVerifiedByOfficial === true) {
-          await rpc('review_guardian_link', {
-            p_link_id: linkId,
-            p_decision: 'verified',
-            p_reason: 'Identity and relationship confirmed by the registering barangay official.',
-          });
-        }
       }
     } catch (guardianError) {
       // The resident already exists; let the screen continue with it.
