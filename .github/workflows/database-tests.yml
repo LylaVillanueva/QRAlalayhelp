@@ -34,16 +34,24 @@ jobs:
           test "$(sed -n 's/^select plan(\([0-9][0-9]*\));$/\1/p' supabase/tests/database/20261125_workflow_security.test.sql | head -1)" -eq 42
       - name: Start isolated Supabase stack and apply all migrations
         run: |
-          supabase start --workdir QRAlalay-Backend --exclude studio,analytics
-          supabase db reset --workdir QRAlalay-Backend --no-seed
+          set -euo pipefail
+          supabase start --workdir QRAlalay-Backend --exclude studio,analytics > "$RUNNER_TEMP/supabase-start.log" 2>&1
+          grep '^Applying migration ' "$RUNNER_TEMP/supabase-start.log"
+          supabase db reset --workdir QRAlalay-Backend --no-seed > "$RUNNER_TEMP/supabase-reset.log" 2>&1
+          grep '^Applying migration ' "$RUNNER_TEMP/supabase-reset.log"
+          applied=$(grep -c '^Applying migration ' "$RUNNER_TEMP/supabase-reset.log")
+          test "$applied" -eq 15
       - name: Run resident and QR export assertions (46)
-        run: supabase test db --workdir QRAlalay-Backend supabase/tests/database/20261126_resident_patch_qr_export.test.sql
+        working-directory: QRAlalay-Backend
+        run: supabase test db supabase/tests/database/20261126_resident_patch_qr_export.test.sql
       - name: Run responder history authorization assertions (15)
-        run: supabase test db --workdir QRAlalay-Backend supabase/tests/database/20261126_responder_history_scope.test.sql
+        working-directory: QRAlalay-Backend
+        run: supabase test db supabase/tests/database/20261126_responder_history_scope.test.sql
       - name: Run workflow and official closure assertions (42)
-        run: supabase test db --workdir QRAlalay-Backend supabase/tests/database/20261125_workflow_security.test.sql
+        working-directory: QRAlalay-Backend
+        run: supabase test db supabase/tests/database/20261125_workflow_security.test.sql
       - name: Run QR encryption and Edge Function contract tests
         run: deno test --allow-env QRAlalay-Backend/supabase/functions/_shared/qr-token-crypto.test.ts QRAlalay-Backend/supabase/functions/_shared/qr-functions.test.ts
       - name: Stop isolated Supabase stack
         if: always()
-        run: supabase stop --workdir QRAlalay-Backend --no-backup
+        run: supabase stop --workdir QRAlalay-Backend
