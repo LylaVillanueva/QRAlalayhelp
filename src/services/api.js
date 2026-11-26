@@ -1,7 +1,6 @@
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || import.meta.env.EXPO_PUBLIC_SUPABASE_URL)?.replace(/\/$/, '');
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const FUNCTIONS_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1` : null;
-const activeLocationShares = new Set();
 
 function configuration() {
   if (!FUNCTIONS_URL || !SUPABASE_ANON_KEY) {
@@ -104,26 +103,9 @@ export const api = {
     return result;
   },
 
-  async shareLocation(locationToken, position) {
-    if (!activeLocationShares.has(locationToken)) {
-      const started = await invoke('location-share', { action: 'start', locationToken });
-      if (!started?.sharing) return { sharing: false };
-      activeLocationShares.add(locationToken);
-    }
-    return invoke('location-share', {
-      action: 'update',
-      locationToken,
-      latitude: position.latitude,
-      longitude: position.longitude,
-      accuracyMeters: position.accuracy ?? null,
-    });
-  },
-
-  async stopLocation(locationToken) {
-    if (!locationToken) return { ok: true };
-    activeLocationShares.delete(locationToken);
-    return invoke('location-share', { action: 'stop', locationToken });
-  },
+  // Status of the bystander's own request, authorized by the request token
+  // created in this browser. Returns { status, createdAt, cancellableUntil, cancelled }.
+  getRequestStatus: (requestToken) => invoke('public-assistance-status', { requestToken }),
 
   clearPublicRequest(token) { clearCapabilities(token); },
 };

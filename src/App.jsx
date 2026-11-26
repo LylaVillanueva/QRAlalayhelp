@@ -1,42 +1,44 @@
+import { useI18n } from './i18n.jsx';
 import ScanPage from './pages/ScanPage.jsx';
+import HomePage from './pages/HomePage.jsx';
+import InfoPage from './pages/InfoPage.jsx';
 import PageLayout from './components/PageLayout.jsx';
+import CallActions from './components/CallActions.jsx';
+import Notice from './components/Notice.jsx';
 
-// QR tokens are 24 random bytes in base64url (32 characters). Anything that
-// doesn't look like one is rejected here, without calling the server.
-const TOKEN_PATTERN = /^[A-Za-z0-9_-]{20,64}$/;
+// Same format the server accepts for QR tokens (base64url, 32-64 characters).
+// Anything else is rejected here without calling the server.
+export const TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,64}$/;
+const INFO_PAGES = { '/about': 'about', '/privacy': 'privacy', '/terms': 'terms' };
 
-// The site has one real destination: a QR card opens /scan/<token> directly.
-// Every other address shows a short notice, with no way to type in a code.
+// Printed QR cards open /scan/<token>; that route must never change.
 export default function App() {
-  const match = window.location.pathname.match(/^\/scan\/([^/]+)\/?$/);
-  const token = match ? safeDecode(match[1]) : null;
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  const scan = path.match(/^\/scan\/([^/]+)$/);
 
-  if (token && TOKEN_PATTERN.test(token)) return <ScanPage token={token} />;
-  return <NoCard invalid={Boolean(match)} />;
+  if (scan) {
+    const token = safeDecode(scan[1]);
+    return token && TOKEN_PATTERN.test(token) ? <ScanPage token={token} /> : <BrokenLink />;
+  }
+  if (path.startsWith('/scan')) return <BrokenLink />;
+  if (INFO_PAGES[path]) return <InfoPage page={INFO_PAGES[path]} />;
+  return <HomePage />;
 }
 
 function safeDecode(value) {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return null;
-  }
+  try { return decodeURIComponent(value); } catch { return null; }
 }
 
-function NoCard({ invalid }) {
+function BrokenLink() {
+  const { t } = useI18n();
   return (
-    <PageLayout>
-      <section className="status-block">
-        <h1>{invalid ? 'This QR code isn’t valid' : 'Scan a QRAlalay card'}</h1>
-        <p className="body-copy">
-          {invalid
-            ? 'The link is incomplete or damaged. Try scanning the card again, or ask the barangay for help.'
-            : 'This page opens when you scan the QR card of a resident who may need help.'}
-        </p>
-      </section>
-      <a className="button button-danger" href="tel:911">Call 911 now</a>
-      <hr className="divider" />
-      <p className="fine-print">If someone is in immediate danger, call emergency services first.</p>
+    <PageLayout protectFlow>
+      <h1 className="page-title">{t('invalidLinkTitle')}</h1>
+      <Notice tone="danger" role="alert">
+        <p>{t('invalidLinkBody')}</p>
+        <p>{t('invalidRecovery')}</p>
+      </Notice>
+      <CallActions showBarangay={false} />
     </PageLayout>
   );
 }

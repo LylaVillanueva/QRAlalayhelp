@@ -4,7 +4,8 @@
 // Asks for real GPS (not Wi-Fi/cell estimates) and never reuses a cached
 // fix. The first reading is often rough, so it keeps listening and returns
 // as soon as one is within GOOD_ACCURACY_M, or the best one seen when time
-// runs out — an emergency alert should not wait longer than that.
+// runs out. Used once per request; QRAlalay never tracks location continuously.
+// Resolves to null when permission is denied or no fix is available.
 const GOOD_ACCURACY_M = 25;
 
 export function getCurrentPosition({ timeoutMs = 8000 } = {}) {
@@ -33,33 +34,4 @@ export function getCurrentPosition({ timeoutMs = 8000 } = {}) {
     );
     const timer = setTimeout(finish, timeoutMs);
   });
-}
-
-// Live tracking for "Share live location". Calls `onPosition` whenever the
-// device reports a usable fix and `onError` if permission is denied. Returns
-// a function that stops watching. Browsers pause this while the page is in
-// the background or the screen is locked.
-//
-// A phone briefly losing GPS (indoors, under a roof) falls back to rough
-// Wi-Fi/cell fixes hundreds of metres off. Those are skipped while a precise
-// fix from the last 30 seconds exists, so the pin doesn't jump around.
-export function watchPosition(onPosition, onError) {
-  if (!navigator.geolocation) {
-    onError({ code: 'UNSUPPORTED' });
-    return () => {};
-  }
-  let lastGood = null;
-  const id = navigator.geolocation.watchPosition(
-    (pos) => {
-      const { latitude, longitude, accuracy } = pos.coords;
-      const now = Date.now();
-      const muchWorse = lastGood && accuracy > Math.max(lastGood.accuracy * 2, 50) && now - lastGood.at < 30000;
-      if (muchWorse) return;
-      lastGood = { accuracy, at: now };
-      onPosition({ latitude, longitude, accuracy });
-    },
-    (err) => onError(err),
-    { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
-  );
-  return () => navigator.geolocation.clearWatch(id);
 }

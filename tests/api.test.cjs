@@ -104,20 +104,18 @@ test('cancelling a public request removes only the matching browser capability',
   }, { initialStorage });
 });
 
-test('temporary location sharing starts once, updates, stops, and can restart', async () => {
-  await withApi([
-    response({ sharing: true }), response({ sharing: true }), response({ sharing: true }),
-    response({ ok: true }), response({ sharing: true }), response({ sharing: true }),
-  ], async (api, calls) => {
-    const position = { latitude: 14.5, longitude: 121.0, accuracy: 8 };
-    await api.shareLocation('location-proof', position);
-    await api.shareLocation('location-proof', position);
-    await api.stopLocation('location-proof');
-    await api.shareLocation('location-proof', position);
-    assert.deepEqual(calls.map((call) => JSON.parse(call.options.body).action), ['start', 'update', 'update', 'stop', 'start', 'update']);
-    assert.equal(JSON.parse(calls[1].options.body).accuracyMeters, 8);
-    assert.equal(calls[0].url, 'https://example.supabase.co/functions/v1/location-share');
+test('request status uses only the browser-held request token', async () => {
+  await withApi([response({ status: 'in_progress', createdAt: '2026-11-26T01:00:00Z', cancellableUntil: '2026-11-26T01:02:00Z', cancelled: false })], async (api, calls) => {
+    const status = await api.getRequestStatus('request-proof');
+    assert.equal(status.status, 'in_progress');
+    assert.equal(calls[0].url, 'https://example.supabase.co/functions/v1/public-assistance-status');
+    assert.deepEqual(JSON.parse(calls[0].options.body), { requestToken: 'request-proof' });
   });
+});
+
+test('the website never calls the continuous location-sharing function', async () => {
+  assert.equal(source.includes('location-share'), false);
+  assert.equal('shareLocation' in (await import(`data:text/javascript;base64,${Buffer.from(source.replace(/import\.meta\.env/g, '({})')).toString('base64')}`)).api, false);
 });
 
 test('public API preserves Edge Function error code and HTTP status', async () => {
