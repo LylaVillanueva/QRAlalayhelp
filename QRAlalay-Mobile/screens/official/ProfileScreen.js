@@ -1,8 +1,8 @@
 import { typography, spacing, colors, shadow } from '../../constants/theme';
 import { changePhoto } from '../../utils/photos';
 import Avatar from "../../components/Avatar";
-import QrCardPanel, { QrAction } from "../../components/QrCardPanel";
-import BrandHeader, { BARANGAY_LABEL } from "../../components/BrandHeader";
+import QrCardPanel, { QrAction, QrActionGrid, QrOwnerSummary } from "../../components/QrCardPanel";
+import BrandHeader from "../../components/BrandHeader";
 import useResidentProfile from "../../hooks/useResidentProfile";
 import ScreenState from "../../components/ScreenState";
 import { api } from '../../services/api';
@@ -230,18 +230,16 @@ export default function ProfileScreen({ route, navigation }) {
   if (showQR && qrData?.publicScanUrl) {
     return (
       <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-        <BrandHeader title="QR card" subtitle={resident.name} onBack={() => setShowQR(false)} />
+        <BrandHeader title="Resident QR card" onBack={() => setShowQR(false)} />
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.qrScroll}>
-          <QrCardPanel
-            value={qrData.publicScanUrl}
-            qrRef={qrRef}
-            name={resident.name}
-            category={resident.type}
-            details={[resident.code, BARANGAY_LABEL]}
-          />
-          <QrAction variant="save" label={qrBusy ? 'Please wait…' : 'Save / share PDF'} disabled={qrBusy} onPress={saveQrCard} />
-          <QrAction variant="replace" label="Replace QR card" disabled={qrBusy} onPress={() => confirmIssue(true)} />
-          <QrAction variant="revoke" label="Revoke QR card" disabled={qrBusy} onPress={confirmRevoke} />
+          <QrOwnerSummary name={resident.name} category={resident.type}
+            photo={<Avatar uri={resident.photoUrl} name={resident.name} style={styles.qrPhoto} />} />
+          <QrCardPanel value={qrData.publicScanUrl} qrRef={qrRef} code={resident.code} />
+          <QrActionGrid>
+            <QrAction variant="save" label={qrBusy ? 'Please wait…' : 'Save PDF'} disabled={qrBusy} onPress={saveQrCard} />
+            <QrAction half variant="replace" label="Replace QR" disabled={qrBusy} onPress={() => confirmIssue(true)} />
+            <QrAction half variant="revoke" label="Revoke QR" disabled={qrBusy} onPress={confirmRevoke} />
+          </QrActionGrid>
         </ScrollView>
         <AppModal visible={!!modal} title={modal?.title} onClose={closeModal} actions={modal?.actions}>
           <Text style={styles.modalText}>{modal?.message}</Text>
@@ -484,6 +482,7 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 9, paddingHorizontal: 10, paddingVertical: 6 },
   busy: { position: 'absolute', top: '45%', alignSelf: 'center' },
 
+  qrPhoto: { width: 72, height: 84, borderRadius: 14, backgroundColor: colors.primarySoft },
   qrScroll: { padding: spacing.screen, paddingTop: 4, paddingBottom: spacing.screen + 16 },
   qrBox: { margin: 20, marginTop: 10, borderWidth: 1, borderColor: colors.primary, borderRadius: 14, padding: 20, paddingTop: 30, paddingBottom: 10, alignItems: 'center', backgroundColor: colors.primarySoft },
   qrName: { fontSize: typography.section, fontFamily: 'Poppins_600SemiBold', color: colors.primary, marginTop: 20 },

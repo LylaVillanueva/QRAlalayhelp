@@ -5,8 +5,8 @@ import Text from "../../components/AppText";
 import TextInput from "../../components/AppTextInput";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dropdown } from 'react-native-element-dropdown';
-import QrCardPanel, { QrAction } from "../../components/QrCardPanel";
-import BrandHeader, { BARANGAY_LABEL } from "../../components/BrandHeader";
+import QrCardPanel, { QrAction, QrActionGrid, QrOwnerSummary } from "../../components/QrCardPanel";
+import BrandHeader from "../../components/BrandHeader";
 import { api } from '../../services/api';
 import { exportQrCard } from '../../services/qrCardExport';
 import { Field } from "../../components/ui";
@@ -217,12 +217,11 @@ export default function EnrollNewResident({ navigation, session }) {
       <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
         <BrandHeader title="QR card generated" subtitle={createdResident?.full_name} onBack={() => navigation.navigate('ResidentScreen')} />
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.qrScroll}>
+          <QrOwnerSummary name={createdResident?.full_name} category={createdResident?.resident_type || form.role} />
           <QrCardPanel
             value={!generatingQr ? createdQr?.publicScanUrl : null}
             qrRef={qrRef}
-            name={createdResident?.full_name}
-            category={createdResident?.resident_type || form.role}
-            details={[createdResident?.resident_code, officialBarangayName || BARANGAY_LABEL]}
+            code={createdResident?.resident_code}
           >
             {generatingQr ? (
               <ActivityIndicator color={colors.primary} />
@@ -238,8 +237,10 @@ export default function EnrollNewResident({ navigation, session }) {
           {guardianMode === 'existing' || guardianMode === 'new' ? (
             <Text style={styles.qrNote}>Guardian relationship: pending verification. {guardianMode === 'new' ? 'An invitation email was sent. ' : ''}Verify it from the resident profile after checking identity and relationship.</Text>
           ) : null}
-          <QrAction variant="save" label={savingQr ? 'Preparing QR card…' : 'Save / share PDF'} disabled={savingQr || !createdQr?.publicScanUrl} onPress={saveQrCard} />
-          <QrAction variant="secondary" label="View resident profile" onPress={() => navigation.replace('ProfileScreen', { residentId: createdResident.id })} />
+          <QrActionGrid>
+            <QrAction variant="save" label={savingQr ? 'Preparing PDF…' : 'Save PDF'} disabled={savingQr || !createdQr?.publicScanUrl} onPress={saveQrCard} />
+            <QrAction variant="secondary" label="View resident profile" onPress={() => navigation.replace('ProfileScreen', { residentId: createdResident.id })} />
+          </QrActionGrid>
         </ScrollView>
       </SafeAreaView>
     );
