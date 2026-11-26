@@ -117,13 +117,13 @@ select ok(exists(select 1 from qralalay.audit_logs where actor_id='a3200000-0000
   'registration-time approval is auditable');
 
 insert into auth.users(id,email,invited_at,confirmation_sent_at)
-values ('a1200000-0000-4000-8000-000000000005','guardian-approval-new@example.test',now(),now());
+values ('a1200000-0000-4000-8000-000000000006','guardian-approval-new@example.test',now(),now());
 set local role service_role;
 select public.link_invited_auth_user(current_setting('qralalay.test_invited_profile_id')::uuid,
-  'a1200000-0000-4000-8000-000000000005','guardian-approval-new@example.test');
+  'a1200000-0000-4000-8000-000000000006','guardian-approval-new@example.test');
 reset role;
 set local role authenticated;
-select set_config('request.jwt.claim.sub','a1200000-0000-4000-8000-000000000005',true);
+select set_config('request.jwt.claim.sub','a1200000-0000-4000-8000-000000000006',true);
 select is((select count(*)::integer from public.get_my_profile()),0,'unconfirmed invited guardian cannot sign in to an inactive profile');
 select throws_ok($test$select * from public.list_accessible_residents_with_birth_date()$test$,
   '42501','Active profile required','unconfirmed guardian cannot access linked resident data');
@@ -135,14 +135,14 @@ select set_config('request.jwt.claim.sub','a1200000-0000-4000-8000-000000000001'
 select throws_ok($test$select public.set_profile_active(current_setting('qralalay.test_invited_profile_id')::uuid,true,'test activation')$test$,
   '23514','The invited user must verify their email before activation','official cannot activate before email confirmation');
 reset role;
-update auth.users set email_confirmed_at=now() where id='a1200000-0000-4000-8000-000000000005';
+update auth.users set email_confirmed_at=now() where id='a1200000-0000-4000-8000-000000000006';
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a1200000-0000-4000-8000-000000000001',true);
 select is(public.set_profile_active(current_setting('qralalay.test_invited_profile_id')::uuid,true,'email verified by test guardian'),
-  'a1200000-0000-4000-8000-000000000005'::uuid,'official can activate after email confirmation');
+  'a1200000-0000-4000-8000-000000000006'::uuid,'official can activate after email confirmation');
 reset role;
 set local role authenticated;
-select set_config('request.jwt.claim.sub','a1200000-0000-4000-8000-000000000005',true);
+select set_config('request.jwt.claim.sub','a1200000-0000-4000-8000-000000000006',true);
 select is((select count(*)::integer from public.list_accessible_residents_with_birth_date()
   where resident_id='a4200000-0000-4000-8000-000000000002'),1,
   'guardian gains linked resident access only after confirmation and activation');
