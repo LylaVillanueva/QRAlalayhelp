@@ -137,7 +137,7 @@ main:focus { outline: none; }
 /* ---------- Notices (icon + words, never colour alone) ---------- */
 .notice {
   display: flex; gap: var(--space-3); align-items: flex-start;
-  padding: var(--space-4); border-radius: var(--radius-md); border-left: 6px solid;
+  padding: var(--space-4); border-radius: var(--radius-md); border: 0;
 }
 .notice__icon { margin-top: 2px; }
 .notice__body { display: flex; flex-direction: column; gap: var(--space-2); }
