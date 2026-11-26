@@ -13,12 +13,15 @@ Do not use the legacy full-replacement update RPC for ordinary edits. It is revo
 
 ## Guardian and account verification
 
-- `create_guardian_link(p_resident_id uuid, p_guardian_profile_id uuid, p_relationship text)` creates a pending relationship.
+- `approve_guardian_relationship(p_resident_id uuid, p_guardian_profile_id uuid, p_relationship text, p_context text)` is the official-only save action for an existing guardian. It creates or approves the current link in place, returns its ID, and records the official, time, context (`registration`, `linking`, or `pending_review`), and relationship. Repeating it for an already-verified link is idempotent.
+- `invite-account` accepts `relationshipApproved: true`, guardian `wardIds`, and `relationship` when the official explicitly approves the relationship during registration. It calls `create_guardian_invitation_with_approved_links`, which creates or reuses the inactive invitation profile and records the approved links in one database transaction before Auth sends the invitation. The normal invitation request alone does not approve a relationship.
+- `resend-guardian-invitation` accepts `{ "profileId": "<uuid>" }`. It reuses the existing Auth account only when an active same-barangay official targets a linked, unconfirmed, inactive guardian with a current relationship. It is limited to one request per five minutes and three per 24 hours. Auth acceptance is audited; it does not prove inbox delivery.
+- `create_guardian_link(p_resident_id uuid, p_guardian_profile_id uuid, p_relationship text)` remains for older clients and creates a pending relationship.
 - `list_resident_guardian_links(p_resident_id uuid)` returns pending and verified links: `link_id`, `guardian_profile_id`, `guardian_name`, `guardian_phone`, `guardian_email`, `guardian_is_active`, `guardian_email_confirmed`, `relationship`, `status`, `created_at`, and `verified_at`. Revoked links are omitted.
 - `review_guardian_link(p_link_id uuid, p_decision text, p_reason text)` accepts `verified` or `revoked`, requires a reason, and is an official same-barangay action.
 - `list_barangay_profiles_with_status()` returns `profile_id`, `email_confirmed`, and `has_auth_user` for the caller’s barangay.
 
-Email confirmation and relationship verification are separate: confirming an Auth account does not verify its resident link, and verifying a link does not activate the account.
+Official relationship approval, email confirmation, and account activation remain separate gates. The new registration/link action is the approval event; sending an invitation does not prove identity or relationship. A guardian cannot access linked resident data until email confirmation and official account activation are both complete.
 
 ## QR cards
 

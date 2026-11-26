@@ -5,7 +5,7 @@ Live CLI verification on 2026-11-26 found eight active functions on Project B. T
 ## Function groups
 
 - Public, rate-limited: `public-qr-view`, `submit-assistance-request`, `public-assistance-status`, `cancel-assistance-request`, `location-share`.
-- Authenticated: `issue-qr-card`, `export-qr-card`, `invite-account`.
+- Authenticated: `issue-qr-card`, `export-qr-card`, `invite-account`, `resend-guardian-invitation`.
 - Worker-only: `notification-worker`, protected by its secret header.
 
 Keep JWT verification enabled for authenticated functions. The worker is protected by its worker secret. Never deploy these functions with unreviewed `--no-verify-jwt` flags.

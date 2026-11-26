@@ -1,12 +1,6 @@
 # Supabase migration state
 
-Verified against Project B `jmzpqfgbjigbxkuofaae` on 2026-11-26 with the authenticated Supabase CLI. The remote migration ledger contains the first 12 local versions, from `20261124171158` through `20261125138000`. All 12 match local migration files. No migration repair is needed. The remote dry run lists exactly these three local pending migrations:
-
-- `20261126002457_resident_patch_and_qr_reexport.sql`
-- `20261126010000_role_scoped_responder_history.sql`
-- `20261126011000_case_report_review_at_closure.sql`
-
-The earlier audit notes claiming an empty migration ledger and an unresolved global default-privilege exposure are stale snapshots and are superseded by the live CLI/catalog checks above. Do not apply the foundation migration again or repair migration history.
+Project B `jmzpqfgbjigbxkuofaae` has 15 applied migrations through `20261126011000_case_report_review_at_closure.sql`. This change adds `20261126012000_guardian_approval_and_resend.sql` as the next local migration. It has not been deployed; apply it only after the required isolated tests pass and the owner approves deployment. Do not repair migration history or modify earlier migrations.
 
 ## Current security catalog findings
 
@@ -16,12 +10,12 @@ The earlier audit notes claiming an empty migration ledger and an unresolved glo
 - No global default ACL rows were present. Existing `public` and platform schema defaults are scoped to those schemas; there is no `qralalay` schema default ACL grant to clients. This does not establish a general policy for future objects: continue explicit grants/revokes and inspect new function ACLs in migrations.
 - Application RPC execution grants are role-scoped; no public application RPC was found executable by `anon`. The only anon-executable routine is platform event trigger `public.rls_auto_enable()`, owned by `postgres`, with `search_path=pg_catalog`; it is registered for DDL events and is not an app RPC. No corrective ACL migration is indicated by this finding.
 
-These checks do not assert that every business workflow has passed live acceptance. New SQL in the three pending migrations remains untested until the isolated branch test step in [deployment](../../docs/deployment.md).
+These checks do not assert that every business workflow has passed live acceptance. The new guardian workflow migration must pass the isolated SQL and Edge Function tests before deployment.
 
-## Targeted pending migration scope
+## Guardian approval and resend scope
 
-- `20261126002457`: partial resident editing, encrypted QR token storage, secure initial issuance/re-export reads, audit behavior, and legacy issue RPC revocation.
-- `20261126010000`: role-scoped responder resident/case history, including denial for responders without assignment and role changes.
-- `20261126011000`: official case closure reviews the selected report and records its audit in the same transaction.
+- `20261126012000`: official-only relationship approval at registration/linking, in-place confirmation for existing pending links, account activation/email confirmation gates, and rate-limited audited resend preparation.
+- Updated `invite-account`: accepts the explicit approved-registration contract while retaining its existing pending-link path for older clients.
+- New `resend-guardian-invitation`: resends only an existing linked, inactive, unconfirmed guardian account; it does not create or replace Auth users.
 
-The current hosted `issue-qr-card` still calls the legacy issue RPC. Deploy the updated `issue-qr-card` and new `export-qr-card` with the QR migration in one approved maintenance window. Exact commands, isolated test preparation, notification findings, and recovery steps are in [deployment](../../docs/deployment.md).
+The migration and functions require approval before production deployment. No hosted resource was changed for this work.
