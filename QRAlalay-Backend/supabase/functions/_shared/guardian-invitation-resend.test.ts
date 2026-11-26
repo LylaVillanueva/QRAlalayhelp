@@ -28,7 +28,7 @@ function withMockFetch(inviteResponse: Response) {
     if (url.endsWith("/rest/v1/rpc/prepare_guardian_invitation_resend")) {
       return new Response(JSON.stringify([{ request_id: requestId, email, auth_user_id: authUserId }]), { status: 200 });
     }
-    if (url.endsWith("/auth/v1/invite")) return inviteResponse;
+    if (url.includes("/auth/v1/invite")) return inviteResponse;
     if (url.endsWith("/rest/v1/rpc/complete_guardian_invitation_resend")) return new Response("true", { status: 200 });
     throw new Error(`Unexpected request: ${url}`);
   }) as typeof fetch;
