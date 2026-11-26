@@ -133,7 +133,7 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a1200000-0000-4000-8000-000000000001',true);
 select throws_ok($test$select public.set_profile_active(current_setting('qralalay.test_invited_profile_id')::uuid,true,'test activation')$test$,
-  '23514','The invited user must verify their email before activation','official cannot activate before email confirmation');
+  '23514','The invited user must verify their email or phone before activation','official cannot activate before email confirmation');
 reset role;
 update auth.users set email_confirmed_at=now() where id='a1200000-0000-4000-8000-000000000006';
 set local role authenticated;
