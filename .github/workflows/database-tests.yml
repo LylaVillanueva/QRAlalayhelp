@@ -32,7 +32,7 @@ jobs:
           test "$(sed -n 's/^select plan(\([0-9][0-9]*\));$/\1/p' supabase/tests/database/20261126_resident_patch_qr_export.test.sql | head -1)" -eq 46
           test "$(sed -n 's/^select plan(\([0-9][0-9]*\));$/\1/p' supabase/tests/database/20261126_responder_history_scope.test.sql | head -1)" -eq 15
           test "$(sed -n 's/^select plan(\([0-9][0-9]*\));$/\1/p' supabase/tests/database/20261125_workflow_security.test.sql | head -1)" -eq 42
-          test "$(sed -n 's/^select plan(\([0-9][0-9]*\));$/\1/p' supabase/tests/database/20261126_guardian_approval_and_resend.test.sql | head -1)" -eq 32
+          test "$(sed -n 's/^select plan(\([0-9][0-9]*\));$/\1/p' supabase/tests/database/20261126_guardian_approval_and_resend.test.sql | head -1)" -eq 34
       - name: Start isolated Supabase stack and apply all migrations
         run: |
           set -euo pipefail
@@ -51,7 +51,7 @@ jobs:
       - name: Run workflow and official closure assertions (42)
         working-directory: QRAlalay-Backend
         run: supabase test db supabase/tests/database/20261125_workflow_security.test.sql
-      - name: Run guardian approval and invitation resend assertions (32)
+      - name: Run guardian approval and invitation resend assertions (34)
         working-directory: QRAlalay-Backend
         run: supabase test db supabase/tests/database/20261126_guardian_approval_and_resend.test.sql
       - name: Run QR encryption and Edge Function contract tests
