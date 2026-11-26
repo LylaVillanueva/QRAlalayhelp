@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { getExpoPushToken } from './notifications';
 import { sessionStorage } from './sessionStorage';
+import * as Crypto from 'expo-crypto';
 
 const ROLE_FROM_DB = { official: 'barangay_official', guardian: 'guardian', responder: 'barangay_responder', resident: 'resident' };
 const PROFILE_PHOTO_BUCKET = 'profile-photos';
@@ -213,24 +214,15 @@ function unsupported(name) {
   return error;
 }
 
-function randomCapability() {
-  const bytes = new Uint8Array(32);
-  if (!globalThis.crypto?.getRandomValues) throw new Error('Secure random token generation is unavailable on this device.');
-  globalThis.crypto.getRandomValues(bytes);
+async function randomCapability() {
+  const bytes = await Crypto.getRandomBytesAsync(32);
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return globalThis.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
 function randomUuid() {
-  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-  const bytes = new Uint8Array(16);
-  if (!globalThis.crypto?.getRandomValues) throw new Error('Secure random token generation is unavailable on this device.');
-  globalThis.crypto.getRandomValues(bytes);
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = [...bytes].map((value) => value.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+  return Crypto.randomUUID();
 }
 
 function requestKey(token) { return `qralalay.public-request.${token}`; }
@@ -244,7 +236,8 @@ async function publicCapabilities(token) {
       if (parsed?.idempotencyKey && parsed?.requestToken && parsed?.locationToken) return parsed;
     } catch { /* Replace malformed local state with fresh capabilities. */ }
   }
-  const created = { idempotencyKey: randomUuid(), requestToken: randomCapability(), locationToken: randomCapability() };
+  const [requestToken, locationToken] = await Promise.all([randomCapability(), randomCapability()]);
+  const created = { idempotencyKey: randomUuid(), requestToken, locationToken };
   await sessionStorage.setItem(key, JSON.stringify(created));
   return created;
 }
@@ -425,7 +418,9 @@ export const supabaseApi = {
     const detail = rows(result)[0];
     if (!detail) return null;
     const row = rows(overview).find((item) => item.case_id === caseId);
-    return mapCase({ ...detail, assigned_responder_photo_url: row?.assigned_responder_photo_url || detail.assigned_responder_photo_url });
+    // The detail RPC intentionally omits assignment identity. Merge the
+    // authorized case-list row so accept/decline can send its assignment ID.
+    return mapCase({ ...row, ...detail, assigned_responder_photo_url: row?.assigned_responder_photo_url || detail.assigned_responder_photo_url });
   },
 
   async listAuditLogs() {
@@ -557,9 +552,27 @@ export const supabaseApi = {
 
   // Creates a pending link; verification is a separate, explicit official action.
   async linkGuardianToResident({ residentId, guardianId, relationship }) {
-    return rpc('create_guardian_link', {
-      p_resident_id: residentId, p_guardian_profile_id: guardianId, p_relationship: relationship,
-    });
+    const current = await this.listResidentGuardianLinks(residentId);
+    const existing = current.links.find((link) => link.guardianId === guardianId && ['pending', 'verified'].includes(link.status));
+    if (existing) return { linkId: existing.id, status: existing.status, existing: true };
+    try {
+      const linkId = await rpc('create_guardian_link', {
+        p_resident_id: residentId, p_guardian_profile_id: guardianId, p_relationship: relationship,
+      });
+      return { linkId, status: 'pending', existing: false };
+    } catch (error) {
+      // The database's unique current-link constraint remains authoritative.
+      // Resolve the race by re-reading the link instead of showing SQL errors.
+      if (error.code === '23505' || /one_currentguardian_link/i.test(error.message || '')) {
+        const refreshed = await this.listResidentGuardianLinks(residentId);
+        const linked = refreshed.links.find((link) => link.guardianId === guardianId && ['pending', 'verified'].includes(link.status));
+        if (linked) return { linkId: linked.id, status: linked.status, existing: true };
+        const duplicate = new Error('A current relationship with this guardian already exists. Refresh this resident’s profile and review the relationship there.');
+        duplicate.code = 'GUARDIAN_LINK_EXISTS';
+        throw duplicate;
+      }
+      throw error;
+    }
   },
 
   async verifyGuardianLink(linkId, reason) {

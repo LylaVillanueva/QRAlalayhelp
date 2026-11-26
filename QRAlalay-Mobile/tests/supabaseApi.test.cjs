@@ -17,7 +17,8 @@ async function loadSupabaseApi(fixture) {
   const injected = apiSource
     .replace("import { supabase } from './supabase';", `const { supabase } = globalThis.${fixtureKey};`)
     .replace("import { getExpoPushToken } from './notifications';", `const { getExpoPushToken } = globalThis.${fixtureKey};`)
-    .replace("import { sessionStorage } from './sessionStorage';", `const { sessionStorage } = globalThis.${fixtureKey};`);
+    .replace("import { sessionStorage } from './sessionStorage';", `const { sessionStorage } = globalThis.${fixtureKey};`)
+    .replace("import * as Crypto from 'expo-crypto';", `const { Crypto } = globalThis.${fixtureKey};`);
   return import(asModule(injected));
 }
 
@@ -25,6 +26,10 @@ function fixture() {
   const calls = [];
   return {
     calls,
+    Crypto: {
+      randomUUID: () => '12345678-1234-4234-8234-123456789abc',
+      async getRandomBytesAsync(length) { return Uint8Array.from({ length }, (_, index) => index); },
+    },
     getExpoPushToken: async () => null,
     sessionStorage: {
       async getItem() { return null; },
@@ -240,6 +245,96 @@ test('replacing a pending or accepted responder uses reassign_responder with a r
     const call = mock.calls.find((item) => item.rpc === 'reassign_responder');
     assert.deepEqual(call.args, { p_case_id: 'case-1', p_responder_id: 'resp-2', p_reason: 'Cannot reach the area', p_expected_version: 4 });
   }
+});
+
+test('responder acceptance uses the assignment ID from the authorized case-list row', async () => {
+  const mock = caseFixture({ assignmentStatus: 'pending_acceptance', responderId: 'resp-1' });
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await supabaseApi.respondToAssignment('case-1', 'accepted');
+  assert.ok(mock.calls.some((item) => item.rpc === 'respond_to_assignment'
+    && item.args.p_assignment_id === 'asg-1' && item.args.p_decision === 'accepted'));
+});
+
+test('responder decline uses the same assignment ID and preserves its required reason', async () => {
+  const mock = caseFixture({ assignmentStatus: 'pending_acceptance', responderId: 'resp-1' });
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  await supabaseApi.respondToAssignment('case-1', 'declined', 'Cannot reach the location');
+  assert.ok(mock.calls.some((item) => item.rpc === 'respond_to_assignment'
+    && item.args.p_assignment_id === 'asg-1'
+    && item.args.p_decision === 'declined'
+    && item.args.p_reason === 'Cannot reach the location'));
+});
+
+test('a pending guardian link is returned instead of attempting a duplicate insert', async () => {
+  const mock = fixture();
+  mock.supabase.rpc = async (name, args) => {
+    mock.calls.push({ rpc: name, args });
+    if (name === 'list_resident_guardian_links') return { data: [{ link_id: 'link-pending', guardian_profile_id: 'guardian-1', guardian_name: 'Guardian Example', status: 'pending', relationship: 'Parent' }], error: null };
+    return { data: null, error: null };
+  };
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  assert.deepEqual(await supabaseApi.linkGuardianToResident({ residentId: 'resident-1', guardianId: 'guardian-1', relationship: 'Parent' }), {
+    linkId: 'link-pending', status: 'pending', existing: true,
+  });
+  assert.equal(mock.calls.some((call) => call.rpc === 'create_guardian_link'), false);
+});
+
+test('an already verified guardian relationship is preserved without a duplicate insert', async () => {
+  const mock = fixture();
+  mock.supabase.rpc = async (name, args) => {
+    mock.calls.push({ rpc: name, args });
+    if (name === 'list_resident_guardian_links') return { data: [{ link_id: 'link-verified', guardian_profile_id: 'guardian-1', guardian_name: 'Guardian Example', status: 'verified', relationship: 'Parent' }], error: null };
+    return { data: null, error: null };
+  };
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  assert.deepEqual(await supabaseApi.linkGuardianToResident({ residentId: 'resident-1', guardianId: 'guardian-1', relationship: 'Parent' }), {
+    linkId: 'link-verified', status: 'verified', existing: true,
+  });
+  assert.equal(mock.calls.some((call) => call.rpc === 'create_guardian_link'), false);
+});
+
+test('a duplicate-link race rereads the pending relationship and returns a reviewable ID', async () => {
+  const mock = fixture();
+  let listCount = 0;
+  mock.supabase.rpc = async (name, args) => {
+    mock.calls.push({ rpc: name, args });
+    if (name === 'list_resident_guardian_links') {
+      listCount += 1;
+      return { data: listCount === 1 ? [] : [{ link_id: 'link-race', guardian_profile_id: 'guardian-1', guardian_name: 'Guardian Example', status: 'pending', relationship: 'Parent' }], error: null };
+    }
+    if (name === 'create_guardian_link') return { data: null, error: { code: '23505', message: 'duplicate key violates unique constraint "one_currentguardian_link"' } };
+    return { data: null, error: null };
+  };
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  assert.deepEqual(await supabaseApi.linkGuardianToResident({ residentId: 'resident-1', guardianId: 'guardian-1', relationship: 'Parent' }), {
+    linkId: 'link-race', status: 'pending', existing: true,
+  });
+});
+
+test('profile photo uses Expo cryptographic UUIDs and the private upload/path RPC flow', async () => {
+  const mock = fixture();
+  const uploads = [];
+  mock.supabase.rpc = async (name, args) => {
+    mock.calls.push({ rpc: name, args });
+    if (name === 'get_my_profile_with_photos') return { data: [{ profile_id: 'profile-123', role: 'guardian', full_name: 'Guardian Example', photo_path: null }], error: null };
+    if (name === 'set_profile_photo_path') return { data: null, error: null };
+    return { data: true, error: null };
+  };
+  mock.supabase.storage = { from(bucket) { return {
+    async upload(path, bytes, options) { uploads.push({ bucket, path, bytes, options }); return { error: null }; },
+    async createSignedUrl(path) { return { data: { signedUrl: `https://private.test/${path}?signed` }, error: null }; },
+    async remove() { return { error: null }; },
+  }; } };
+  const { supabaseApi } = await loadSupabaseApi(mock);
+  const base64Jpeg = Buffer.from([0xff, 0xd8, 0xff, 0x00]).toString('base64');
+  const result = await supabaseApi.setMyPhoto(base64Jpeg);
+  assert.match(uploads[0].path, /^profiles\/profile-123\/12345678-1234-4234-8234-123456789abc\.jpg$/);
+  assert.equal(uploads[0].bucket, 'profile-photos');
+  assert.equal(uploads[0].options.contentType, 'image/jpeg');
+  assert.deepEqual(mock.calls.find((call) => call.rpc === 'set_profile_photo_path').args, {
+    p_profile_id: 'profile-123', p_path: uploads[0].path,
+  });
+  assert.equal(result.photo_url, `https://private.test/${uploads[0].path}?signed`);
 });
 
 test('a declined assignment can be assigned again without a reason', async () => {

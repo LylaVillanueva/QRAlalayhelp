@@ -62,7 +62,7 @@ export default function AddUser({ route, navigation }) {
 
       Alert.alert(
         'User created',
-        `An invitation email was sent to ${form.email.trim()}. The account stays inactive until ${fullName} opens the email link; then activate it from Manage Users.${form.role === 'Guardian' ? ' Link wards from each resident\'s profile.' : ''}`,
+        `Supabase Auth accepted the invitation request for ${form.email.trim()}; this does not confirm inbox delivery. Ask ${fullName} to check inbox and spam and open the separate invitation link. The account stays inactive until the email is confirmed and an official activates it.${form.role === 'Guardian' ? ' Link wards from each resident\'s profile.' : ''}`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (err) {

@@ -148,9 +148,9 @@ export default function AuditLogScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.screen, paddingBottom: 0, marginTop: -16 },
+  content: { padding: spacing.screen, paddingBottom: 0 },
   scrollView: { flex: 1 },
-  scrollContent: { padding: spacing.screen, paddingTop: 0, marginTop: 20 },
+  scrollContent: { padding: spacing.screen, paddingTop: 16, paddingBottom: spacing.screen },
   buttonContent: { paddingHorizontal: 20, paddingVertical: 12, justifyContent: 'flex-end' },  
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 8 },
   headerTextWrap: { flex: 1, paddingRight: 10 },

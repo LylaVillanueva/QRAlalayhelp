@@ -78,6 +78,8 @@ export default function UserDetails({ route, navigation }) {
         { text: 'Cancel', style: 'cancel' },
         { text: 'Deactivate', style: 'destructive', onPress: () => run(() => deactivateUser(user.id)) },
       ]);
+    } else if (emailStatus && !emailStatus.hasAuthUser) {
+      Alert.alert('Invitation needs attention', 'No Supabase Auth account is linked to this profile yet. Check the invitation status and email delivery before activating it. Do not create a second account for the same email.');
     } else if (emailStatus && !emailStatus.emailConfirmed) {
       Alert.alert('Email not confirmed', `${user.name} hasn't opened the invitation email yet. Ask them to open the link in the email, then activate the account.`);
     } else {
@@ -108,7 +110,12 @@ export default function UserDetails({ route, navigation }) {
           <View style={[styles.statusPill, user.status === 'Active' ? styles.active : styles.inactive]}>
             <Text style={[styles.statusText, user.status === 'Active' ? styles.activeText : styles.inactiveText]}>{user.status}</Text>
           </View>
-          {emailStatus && (
+          {emailStatus && !emailStatus.hasAuthUser && (
+            <View style={[styles.statusPill, styles.inactive]}>
+              <Text style={[styles.statusText, styles.inactiveText]}>Auth account not linked</Text>
+            </View>
+          )}
+          {emailStatus?.hasAuthUser && (
             <View style={[styles.statusPill, emailStatus.emailConfirmed ? styles.active : styles.inactive]}>
               <Text style={[styles.statusText, emailStatus.emailConfirmed ? styles.activeText : styles.inactiveText]}>{emailStatus.emailConfirmed ? 'Email confirmed' : 'Email not confirmed'}</Text>
             </View>

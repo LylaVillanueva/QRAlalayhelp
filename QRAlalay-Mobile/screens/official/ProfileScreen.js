@@ -166,8 +166,13 @@ export default function ProfileScreen({ route, navigation }) {
   async function openLinkGuardian() {
     setLinkForm({ guardianId: '', relationship: '' });
     try {
-      const all = await api.listGuardians();
-      setGuardians(all.filter((guardian) => guardian.is_active !== false));
+      const [all, currentLinks] = await Promise.all([
+        api.listGuardians(),
+        api.listResidentGuardianLinks(resident.id),
+      ]);
+      if (!currentLinks.unavailable) setLinks(currentLinks);
+      const linkedIds = new Set(currentLinks.links.filter((link) => ['pending', 'verified'].includes(link.status)).map((link) => link.guardianId));
+      setGuardians(all.filter((guardian) => guardian.is_active !== false && !linkedIds.has(guardian.id)));
     } catch (err) { setLinkForm(null); notice('Could not load guardians', err.message); }
   }
 
@@ -196,11 +201,28 @@ export default function ProfileScreen({ route, navigation }) {
     const guardian = guardians.find((item) => item.id === linkForm.guardianId);
     setLinkBusy(true);
     try {
-      const linkId = await api.linkGuardianToResident({ residentId: resident.id, guardianId: linkForm.guardianId, relationship: linkForm.relationship });
+      const result = await api.linkGuardianToResident({ residentId: resident.id, guardianId: linkForm.guardianId, relationship: linkForm.relationship });
       setLinkForm(null);
+      if (result.existing) {
+        await loadExtras();
+        if (result.status === 'pending') {
+          confirmVerify(result.linkId, guardian?.fullName || 'This guardian', linkForm.relationship);
+        } else {
+          notice('Relationship already verified', 'This guardian is already verified for this resident. No duplicate relationship was created.');
+        }
+        return;
+      }
       // Linking and verifying are separate decisions; verification is offered next.
-      confirmVerify(linkId, guardian?.fullName || 'This guardian', linkForm.relationship);
-    } catch (err) { notice('Could not link guardian', err.message); }
+      confirmVerify(result.linkId, guardian?.fullName || 'This guardian', linkForm.relationship);
+    } catch (err) {
+      await loadExtras();
+      const message = err.code === 'GUARDIAN_LINK_EXISTS'
+        ? err.message
+        : err.code === '23505' || /one_currentguardian_link/i.test(err.message || '')
+        ? 'A current relationship with this guardian already exists. Refresh and review its status instead of creating another.'
+        : err.message;
+      notice('Could not link guardian', message);
+    }
     finally { setLinkBusy(false); }
   }
 
@@ -364,7 +386,7 @@ export default function ProfileScreen({ route, navigation }) {
       >
         <Text style={styles.modalText}>Choose an active guardian account. The link starts as pending; you can verify it next or later.</Text>
         {guardians.length === 0 ? (
-          <Text style={styles.emptyText}>No active guardian accounts. Invite one from Manage Users.</Text>
+          <Text style={styles.emptyText}>No unlinked guardian accounts are available. Review any pending or verified relationships above.</Text>
         ) : guardians.map((guardian) => {
           const selected = linkForm?.guardianId === guardian.id;
           return (

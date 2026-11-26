@@ -63,7 +63,7 @@ export default function LoginPortal({ setSession, onBack }) {
       setOtpSent(true);
       Alert.alert(
         'Check your email',
-        `If ${id} has a QRAlalay account, a 6-digit sign-in code has been sent to it. If no code arrives, ask your barangay office to confirm your account.`
+        'If this address has a QRAlalay account, a 6-digit sign-in code was requested. A newly invited user must first open the separate invitation link to confirm the email address. If the invite or code is missing, ask your barangay office to check the account and email delivery.'
       );
     } catch (err) {
       Alert.alert('Unable to send code', err?.message || 'Check your internet connection and try again.');

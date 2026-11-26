@@ -19,7 +19,7 @@ function qrImageFromRef(qrRef) {
 
 // Exports the already-issued QR card as a printable PDF. It never issues,
 // replaces or revokes a card. Web opens the print dialog; Android/iOS open
-// the system share sheet so the card can be saved, printed or sent.
+// the Android print dialog or iOS share sheet so the card can be saved/printed.
 export async function exportQrCard(qrRef) {
   const html = buildQrCardHtml(await qrImageFromRef(qrRef));
   if (Platform.OS === 'web') {
@@ -27,9 +27,17 @@ export async function exportQrCard(qrRef) {
     return;
   }
   const { uri } = await Print.printToFileAsync({ html });
+  if (!uri?.startsWith('file://')) throw new Error('The printable QR card could not be saved on this device.');
+  // On Android, sending the Expo Print cache URI through the share sheet can
+  // fail its file-provider read check. Open Android's print UI with the PDF;
+  // users can save it with the system "Save as PDF" destination.
+  if (Platform.OS === 'android') {
+    await Print.printAsync({ uri });
+    return;
+  }
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Save or print QR card', UTI: '.pdf' });
   } else {
-    await Print.printAsync({ html });
+    await Print.printAsync({ uri });
   }
 }
