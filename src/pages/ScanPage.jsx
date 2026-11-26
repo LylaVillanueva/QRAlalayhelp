@@ -196,7 +196,7 @@ export default function ScanPage({ token }) {
           <p className="helper-text">
             {location?.shared
               ? t('locationAccuracy', { m: location.accuracy })
-              : location?.denied ? t('locationDenied') : ''}
+              : location?.denied ? t('locationDenied') : t('locationOptedOut')}
           </p>
         </section>
 

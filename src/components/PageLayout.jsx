@@ -32,7 +32,7 @@ export default function PageLayout({ children, hero = null, protectFlow = false 
         </div>
         {hero && <div className="site-header__hero">{hero}</div>}
         <svg className="site-header__curve" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-          <path d="M0 0h1440v28c-240 44-480 52-720 30S240 20 0 52z" />
+          <path d="M0 46C240 14 480 60 720 52S1200 70 1440 24V80H0Z" />
         </svg>
       </header>
 
