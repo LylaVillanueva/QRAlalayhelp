@@ -5,6 +5,7 @@ import React, { useMemo } from 'react';
 import { View, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import Text from "../../components/AppText";
 import BrandHeader from "../../components/BrandHeader";
+import { Greeting, StatGrid } from "../../components/DashboardParts";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import TabBar from "../../components/tabs/GuardianTabButtons";
@@ -28,10 +29,15 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-      <BrandHeader name={account.fullName} role={'Guardian'} barangay={account.barangayName} photoUrl={myPhotoUrl} />
+      <BrandHeader actions={[{ icon: 'bell', label: 'Assistance requests', onPress: () => navigation.navigate('AlertScreen'), badge: myAlerts.length }]} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <TouchableOpacity style={[styles.button, styles.buttonNotSafe, { flex: 0, marginBottom: 14 }]} onPress={() => navigation.navigate('EmergencyHelp')}
+        <Greeting name={account.fullName} role="Guardian" />
+        <StatGrid items={[
+          { label: 'My residents', count: myWards.length, icon: 'user-friends', tone: 'blue', onPress: () => navigation.navigate('ResidentScreen') },
+          { label: 'Active requests', count: myAlerts.length, icon: 'hands-helping', tone: myAlerts.length ? 'red' : 'green', onPress: () => navigation.navigate('AlertScreen') },
+        ]} />
+        <TouchableOpacity style={[styles.button, styles.buttonNotSafe, { flex: 0, marginTop: 10, marginBottom: 14, marginLeft: 0 }]} onPress={() => navigation.navigate('EmergencyHelp')}
           accessibilityRole="button" accessibilityLabel="Call Barangay or 911">
           <Text style={[styles.buttonText, styles.notSafeText]}>Call Barangay / 911</Text>
         </TouchableOpacity>

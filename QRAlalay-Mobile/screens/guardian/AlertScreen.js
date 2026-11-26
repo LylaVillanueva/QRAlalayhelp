@@ -1,8 +1,9 @@
 import { sortAlertsByPriority, ALERT_FILTERS, alertStageLabel, matchesAlertFilter, alertFilterDescription } from '../../utils/models';
-import { alertLayout, colors, typography, spacing } from '../../constants/theme';
+import { statusAccent, alertLayout, colors, typography, spacing } from '../../constants/theme';
 import React, { useMemo } from 'react';
 import { View, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import Text from '../../components/AppText';
+import BrandHeader from "../../components/BrandHeader";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import TabBar from '../../components/tabs/GuardianTabButtons';
@@ -44,11 +45,9 @@ export default function AlertScreen({ route, navigation }) {
   }, [myAlerts, activeFilter]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      <BrandHeader title="Assistance" />
       <View style={styles.content}>
-        <View style={styles.headerRow}>
-          <Text style={styles.heading}>Assistance</Text>
-        </View>
         <Text style={styles.subheading}>Showing: {alertFilterDescription(activeFilter)}</Text>
 
         <View style={styles.filterRow}>
@@ -76,7 +75,7 @@ export default function AlertScreen({ route, navigation }) {
           visibleAlerts.map((alert) => (
             <View
               key={alert.id}
-              style={[styles.alertCard, alert.status === 'escalated' && styles.escalatedCard]}
+              style={[styles.alertCard, statusAccent(alert.status), alert.status === 'escalated' && styles.escalatedCard]}
             >
               <View style={styles.alertCardTextWrap}>
                 <Text style={[styles.alertCardTitle, statusStyle(alert.status)]}>
@@ -168,7 +167,7 @@ function confirmationStyle(status) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background }, 
-  content: { padding: spacing.screen, paddingBottom: 0, marginTop: -14 },
+  content: { padding: spacing.screen, paddingTop: 4, paddingBottom: 0 },
   scrollView: { flex: 1 }, 
   scrollContent: { padding: spacing.screen, paddingTop: 12 , paddingBottom: 32 }, 
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' , flexWrap: 'wrap', columnGap: 12, rowGap: 8 },
@@ -183,7 +182,7 @@ const styles = StyleSheet.create({
   filterText: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_500Medium' },
   filterLabel: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_500Medium' },
 
-  alertCard: { flexDirection: 'column', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 16, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0, ...alertLayout.card },
+  alertCard: { flexDirection: 'column', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 16, backgroundColor: colors.surface,  ...alertLayout.card },
   alertCardActive: { borderColor: colors.alert, shadowColor: colors.alert, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   alertCardTextWrap: { flexWrap: 'wrap', gap: 6, alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, ...alertLayout.headerRow },
   alertCardTitle: { borderRadius: 10, paddingVertical: 4, paddingHorizontal: 16, fontSize: typography.detail, fontFamily: 'Poppins_600SemiBold' },  alertOpen: { color: colors.alertInk, backgroundColor: colors.alertSoft },

@@ -1,10 +1,11 @@
-import { alertLayout, colors, typography, spacing, radius, tracking } from '../../constants/theme';
+import { statusAccent, alertLayout, colors, typography, spacing, radius, tracking } from '../../constants/theme';
 import Avatar from "../../components/Avatar";
 import { alertStageLabel } from '../../utils/models';
 import React, { useMemo } from 'react';
 import { View, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import Text from "../../components/AppText";
 import BrandHeader from "../../components/BrandHeader";
+import { Greeting, StatGrid } from "../../components/DashboardParts";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import TabBar from "../../components/tabs/TabButtons";
@@ -44,28 +45,21 @@ export default function HomeScreen({ navigation }) {
   const pendingAssignments = () => navigation.navigate('AlertScreen', { filter: 'unassigned' });
 
   const cards = [
-    { label: 'Open assistance requests', count: counts.active, icon: 'hands-helping', onPress: openAlerts },
-    { label: 'Registered residents', count: counts.residents, icon: 'users', onPress: () => navigation.navigate('ResidentScreen') },
-    { label: 'Waiting for a responder', count: counts.unassigned, icon: 'clock', onPress: pendingAssignments },
+    { label: 'Open requests', count: counts.active, icon: 'hands-helping', tone: 'red', onPress: openAlerts },
+    { label: 'Residents', count: counts.residents, icon: 'users', tone: 'blue', onPress: () => navigation.navigate('ResidentScreen') },
+    { label: 'Awaiting responder', count: counts.unassigned, icon: 'user-clock', tone: 'yellow', onPress: pendingAssignments },
   ];
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-      <BrandHeader name={account.fullName} role={'Barangay Official'} barangay={account.barangayName} photoUrl={myPhotoUrl} />
+      <BrandHeader actions={[
+        { icon: 'clipboard-list', label: 'Audit log', onPress: () => navigation.navigate('AuditLogScreen') },
+        { icon: 'bell', label: 'Assistance requests', onPress: openAlerts, badge: counts.active },
+      ]} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Text style={[styles.sectionTitle, styles.overviewTitle]} accessibilityRole="header">Today at a glance</Text>
-        <View style={styles.statPanel}>
-          {cards.map((item, index) => (
-            <TouchableOpacity key={item.label} style={[styles.statRow, index > 0 && styles.statDivider]} onPress={item.onPress} activeOpacity={0.7}
-              accessibilityRole="button" accessibilityLabel={`${item.label}: ${item.count}`}>
-              <View style={styles.statIcon}><FontAwesome5 name={item.icon} size={16} color={colors.primary} /></View>
-              <Text style={styles.statLabel}>{item.label}</Text>
-              <Text style={styles.statCount}>{item.count}</Text>
-              <FontAwesome5 name="chevron-right" size={12} color={colors.textMuted} />
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Greeting name={account.fullName} role="Barangay Official" />
+        <StatGrid items={cards} />
 
         <View style={styles.divider} />
         <View style={styles.headerRow}>
@@ -80,7 +74,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.emptyText}>There are no open assistance requests.</Text>
           </View>
         ) : attentionAlerts.map((alert) => (
-          <TouchableOpacity key={alert.id} style={[styles.headCard, styles.shadow, alert.status === 'escalated' && styles.escalatedCard]} onPress={() => navigation.navigate('AlertDetails', { alertId: alert.id })} activeOpacity={0.8}>
+          <TouchableOpacity key={alert.id} style={[styles.headCard, statusAccent(alert.status), alert.status === 'escalated' && styles.escalatedCard]} onPress={() => navigation.navigate('AlertDetails', { alertId: alert.id })} activeOpacity={0.8}>
             <View style={styles.cardTopRow}>
               <Text style={[styles.statusPill, styles[`status_${alert.status}`]]}>{getStatusLabel(alert)}</Text>
               <Text style={styles.cardTime}>{alert.scannedAt}</Text>
@@ -161,7 +155,7 @@ const styles = StyleSheet.create({
   viewAll: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.detail, paddingVertical: 12, minHeight: 48 }, 
   
   headCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 10, backgroundColor: colors.surface , ...alertLayout.card }, 
-  escalatedCard: { borderColor: colors.alert, shadowColor: colors.alert, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
+  escalatedCard: { borderColor: colors.alertBorder },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' , flexWrap: 'wrap', gap: 8 , ...alertLayout.headerRow }, 
   statusPill: { borderRadius: 10, paddingHorizontal: 11, paddingVertical: 3, fontSize: typography.caption, fontFamily: 'Poppins_600SemiBold' }, 
   status_escalated: { color: colors.alertInk, backgroundColor: colors.alertSoft }, 

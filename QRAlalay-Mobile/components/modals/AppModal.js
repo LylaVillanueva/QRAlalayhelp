@@ -35,12 +35,12 @@ export default function AppModal({ visible, title, onClose, children, actions })
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: spacing.screen },
-  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.card, maxHeight: '80%' },
-  title: { fontSize: typography.section, fontFamily: font.semibold, color: colors.textPrimary, marginBottom: 10 },
+  card: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: 20, maxHeight: '80%', borderTopWidth: 6, borderTopColor: colors.brand },
+  title: { fontSize: typography.section, fontFamily: font.bold, color: colors.textPrimary, letterSpacing: -0.3, marginBottom: 10 },
   body: { flexGrow: 0 },
   row: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14, gap: 10 },
-  btn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: radius.sm, minHeight: 40, justifyContent: 'center' },
-  btnText: { color: colors.primary, fontFamily: font.medium, fontSize: typography.detail },
+  btn: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: radius.md, minHeight: 48, justifyContent: 'center' },
+  btnText: { color: colors.primary, fontFamily: font.semibold, fontSize: typography.detail },
   primaryBtn: { backgroundColor: colors.primary },
   dangerBtn: { backgroundColor: colors.alertInk },
   primaryText: { color: colors.onPrimary },

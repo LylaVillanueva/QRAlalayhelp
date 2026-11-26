@@ -1,8 +1,9 @@
 import { sortAlertsByPriority, ALERT_FILTERS, alertStageLabel, matchesAlertFilter, alertFilterDescription } from '../../utils/models';
-import { alertLayout, colors, typography, spacing } from '../../constants/theme';
+import { statusAccent, alertLayout, colors, typography, spacing } from '../../constants/theme';
 import React, { useMemo } from 'react';
 import { View, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import Text from "../../components/AppText";
+import BrandHeader from "../../components/BrandHeader";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import TabBar from "../../components/tabs/TabButtons";
@@ -30,15 +31,9 @@ export default function AlertScreen({ route, navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      <BrandHeader title="Assistance Requests" actions={[{ icon: 'clipboard-list', label: 'Audit log', onPress: () => navigation.navigate('AuditLogScreen') }]} />
       <View style={styles.content}>
-        <View style={styles.headerRow}>
-          <Text style={styles.heading}>Assistance Requests</Text>
-          <TouchableOpacity style={styles.auditButton} onPress={() => navigation.navigate('AuditLogScreen')}>
-            <FontAwesome5 name="bars" size={13} color={colors.primary} />
-            <Text style={styles.auditText}>Audit Log</Text>
-          </TouchableOpacity>
-        </View>
         <Text style={styles.subheading}>Showing: {alertFilterDescription(requestedFilter)}</Text>
         
         <View style={styles.filterRow}>
@@ -55,7 +50,7 @@ export default function AlertScreen({ route, navigation }) {
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {visibleAlerts.map((alert) => (
-          <View key={alert.id} style={[styles.alertCard, alert.status === 'escalated' && styles.escalatedCard]}>
+          <View key={alert.id} style={[styles.alertCard, statusAccent(alert.status), alert.status === 'escalated' && styles.escalatedCard]}>
             <View style={styles.alertCardTextWrap}>
               <Text style={[styles.statusPill, styles[`status_${alert.status}`]]}>{alertStageLabel(alert.status)}</Text>
               <Text style={styles.time}>{alert.scannedAt}</Text>
@@ -103,7 +98,7 @@ export default function AlertScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background }, 
-  content: { padding: spacing.screen, paddingBottom: 0, marginTop: -14 },
+  content: { padding: spacing.screen, paddingTop: 4, paddingBottom: 0 },
   scrollView: { flex: 1 }, 
   scrollContent: { padding: spacing.screen, paddingTop: 12 , paddingBottom: 32 }, 
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' , flexWrap: 'wrap', columnGap: 12, rowGap: 8 },
@@ -119,8 +114,8 @@ const styles = StyleSheet.create({
   filterText: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_500Medium' },
   filterLabel: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_500Medium' },
 
-  alertCard: { flexDirection: 'column', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 16, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 , ...alertLayout.card },
-  escalatedCard: { borderColor: colors.alert, shadowColor: colors.alert, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
+  alertCard: { flexDirection: 'column', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 16, backgroundColor: colors.surface,  ...alertLayout.card },
+  escalatedCard: { borderColor: colors.alertBorder },
   alertCardTextWrap: { flexWrap: 'wrap', gap: 6, alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 , ...alertLayout.headerRow },
   statusPill: { borderRadius: 10, paddingVertical: 4, paddingHorizontal: 16, fontSize: typography.detail, fontFamily: 'Poppins_600SemiBold' },
   status_open: { color: colors.alertInk, backgroundColor: colors.alertSoft }, 

@@ -86,10 +86,21 @@ export const colors = {
 export const brandDots = [palette.MALASAKIT_RED, palette.PAG_ASA_YELLOW, palette.KALIGTASAN_GREEN, palette.BAYANIHAN_BLUE];
 
 // Depth comes from 1px hairline borders, not drop shadows.
+// Depth comes mainly from 1px hairline borders; cards add a very soft lift
+// so they separate from the warm canvas, as in the design concept.
 export const shadow = {
-  card: { shadowOpacity: 0, elevation: 0 },
-  soft: { shadowOpacity: 0, elevation: 0 },
+  card: { shadowColor: palette.DEEP_NAVY, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
+  soft: { shadowColor: palette.DEEP_NAVY, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1 },
 };
+
+// Left accent stripe for assistance cards, always paired with a text status
+// label: red = new or escalated (needs action), yellow = in progress,
+// green = closed. Closed cards are slightly muted.
+export function statusAccent(status) {
+  if (status === 'closed') return { borderLeftWidth: 5, borderLeftColor: palette.KALIGTASAN_GREEN, opacity: 0.88 };
+  if (status === 'pending') return { borderLeftWidth: 5, borderLeftColor: palette.PAG_ASA_YELLOW };
+  return { borderLeftWidth: 5, borderLeftColor: palette.MALASAKIT_RED };
+}
 
 // Logical pixels: readable at the default size, with optional larger text in Settings.
 export const typography = { title: 30, section: 22, body: 18, detail: 16, caption: 14 };
@@ -125,7 +136,7 @@ export function statusTone(status) {
 
 // Neutral structure keeps attention on the colored confirmation actions.
 export const alertLayout = {
-  card: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: 16, shadowOpacity: 0, elevation: 0 },
+  card: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: 16, ...shadow.card },
   location: { backgroundColor: colors.surfaceSunken, borderColor: colors.border, borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 12 },
   headerRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 },
   details: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 8, minHeight: 48, paddingVertical: 10, paddingHorizontal: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

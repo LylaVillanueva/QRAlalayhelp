@@ -5,6 +5,7 @@ import { View, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-nat
 import Avatar from "../../components/Avatar";
 import Text from "../../components/AppText";
 import BrandHeader from "../../components/BrandHeader";
+import { Greeting, StatGrid } from "../../components/DashboardParts";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TabBar from "../../components/tabs/ResponderTabButtons";
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -29,6 +30,10 @@ const recentIncidents = useMemo(
 );
 
   const currentAssignment = myAssignments[0];
+  const completedCount = useMemo(
+    () => alerts.filter((alert) => alert.responderId === account.id && alert.status === 'closed').length,
+    [alerts, account.id]
+  );
 
   async function respond(decision, reason = null) {
     if (responding || !respondToAssignment) return;
@@ -45,9 +50,14 @@ const recentIncidents = useMemo(
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-      <BrandHeader name={account.fullName} role={'Barangay Responder'} barangay={account.barangayName} photoUrl={myPhotoUrl} />
+      <BrandHeader actions={[{ icon: 'bell', label: 'My assignments', onPress: () => navigation.navigate('AlertScreen'), badge: myAssignments.length }]} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <Greeting name={account.fullName} role="Barangay Responder" />
+        <StatGrid items={[
+          { label: 'Open assignments', count: myAssignments.length, icon: 'clipboard-check', tone: myAssignments.length ? 'yellow' : 'blue', onPress: () => navigation.navigate('AlertScreen') },
+          { label: 'Completed', count: completedCount, icon: 'check-circle', tone: 'green', onPress: () => navigation.navigate('IncidentScreen') },
+        ]} />
         {!currentAssignment ? (
           <View style={styles.emptyCard}>
             <FontAwesome5 name="check-circle" size={24} color={colors.successInk} />

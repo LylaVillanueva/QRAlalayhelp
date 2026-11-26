@@ -5,7 +5,8 @@ import Text from "../../components/AppText";
 import TextInput from "../../components/AppTextInput";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dropdown } from 'react-native-element-dropdown';
-import QRCode from 'react-native-qrcode-svg';
+import QrCardPanel, { QrAction } from "../../components/QrCardPanel";
+import BrandHeader, { BARANGAY_LABEL } from "../../components/BrandHeader";
 import { api } from '../../services/api';
 import { exportQrCard } from '../../services/qrCardExport';
 import { Field } from "../../components/ui";
@@ -213,39 +214,33 @@ export default function EnrollNewResident({ navigation, session }) {
 
   if (step === 3) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
-          <Text style={styles.back} onPress={() => navigation.navigate('ResidentScreen')}>‹ Done</Text>
-          <Text style={styles.heading}>QR Card Generated</Text>
-          <View style={styles.qrBox}>
-            <View style={styles.qrPlaceholder}>
-              {generatingQr ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : createdQr?.publicScanUrl ? (
-                <QRCode value={createdQr.publicScanUrl} size={240} ecl={(createdQr.error_correction || 'Q').toUpperCase()} getRef={(node) => { qrRef.current = node; }} />
-              ) : (
-                <>
-                  <Text style={styles.qrPlaceholderText}>{qrError ? `QR generation failed:\n${qrError}` : 'QR CODE\nUNAVAILABLE'}</Text>
-                  <TouchableOpacity style={styles.qrRetryButton} onPress={() => generateQrForResident(createdResident.id)}>
-                    <Text style={styles.qrRetryButtonText}>Retry</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-            <Text style={styles.qrName}>{createdResident?.full_name}</Text>
-            <Text style={styles.qrDetail}>{createdResident?.resident_code}</Text>
-            <Text style={styles.qrDetail}>{officialBarangayName}</Text>
-            {guardianMode === 'existing' || guardianMode === 'new' ? (
-              <Text style={styles.qrDetail}>Guardian relationship: pending verification. {guardianMode === 'new' ? 'An invitation email was sent. ' : ''}Verify it from the resident profile after checking identity and relationship.</Text>
-            ) : null}
-          </View>
-          <TouchableOpacity style={[styles.button, styles.shadow]} disabled={savingQr || !createdQr?.publicScanUrl} onPress={saveQrCard}>
-            <Text style={styles.buttonText}>{savingQr ? 'Preparing QR Card…' : 'Save / Share QR Card'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.pdfButton, styles.shadow]} onPress={() => navigation.replace('ProfileScreen', { residentId: createdResident.id })}>
-            <Text style={styles.pdfButtonText}>View Resident Profile</Text>
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+        <BrandHeader title="QR card generated" subtitle={createdResident?.full_name} onBack={() => navigation.navigate('ResidentScreen')} />
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.qrScroll}>
+          <QrCardPanel
+            value={!generatingQr ? createdQr?.publicScanUrl : null}
+            qrRef={qrRef}
+            name={createdResident?.full_name}
+            category={createdResident?.resident_type || form.role}
+            details={[createdResident?.resident_code, officialBarangayName || BARANGAY_LABEL]}
+          >
+            {generatingQr ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <>
+                <Text style={styles.qrPlaceholderText}>{qrError ? `QR generation failed:\n${qrError}` : 'QR CODE\nUNAVAILABLE'}</Text>
+                <TouchableOpacity style={styles.qrRetryButton} onPress={() => generateQrForResident(createdResident.id)}>
+                  <Text style={styles.qrRetryButtonText}>Retry</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </QrCardPanel>
+          {guardianMode === 'existing' || guardianMode === 'new' ? (
+            <Text style={styles.qrNote}>Guardian relationship: pending verification. {guardianMode === 'new' ? 'An invitation email was sent. ' : ''}Verify it from the resident profile after checking identity and relationship.</Text>
+          ) : null}
+          <QrAction variant="save" label={savingQr ? 'Preparing QR card…' : 'Save / share PDF'} disabled={savingQr || !createdQr?.publicScanUrl} onPress={saveQrCard} />
+          <QrAction variant="secondary" label="View resident profile" onPress={() => navigation.replace('ProfileScreen', { residentId: createdResident.id })} />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -513,6 +508,8 @@ const styles = StyleSheet.create({
   pdfButton: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 10, paddingVertical: 16, alignItems: 'center', marginTop: 12, minHeight: spacing.control, justifyContent: 'center' },
   pdfButtonText: { color: colors.primary, fontSize: typography.body, fontFamily: 'Poppins_400Regular' },
   pageLabel: { textAlign: 'center', color: colors.textMuted, marginTop: 8, fontSize: typography.caption, fontFamily: 'Poppins_400Regular' },
+  qrScroll: { padding: spacing.screen, paddingTop: 4, paddingBottom: spacing.screen + 16 },
+  qrNote: { fontSize: typography.caption + 1, color: colors.warningInk, backgroundColor: colors.warningSoft, borderRadius: 14, padding: 14, marginTop: 12, lineHeight: 22 },
   qrBox: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 16, padding: 24, alignItems: 'center', marginTop: 20, marginBottom: 20, marginHorizontal: 16 },
   qrPlaceholder: { width: 280, height: 280, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 5, marginBottom: 25, backgroundColor: colors.surfaceSunken },
   qrPlaceholderText: { textAlign: 'center', color: colors.textMuted, fontSize: typography.caption, fontFamily: 'Poppins_500Medium', marginBottom: 12 },

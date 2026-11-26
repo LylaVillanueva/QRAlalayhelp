@@ -2,6 +2,7 @@ import { typography, spacing, colors } from '../../constants/theme';
 import React, { useMemo, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import Text from "../../components/AppText";
+import BrandHeader from "../../components/BrandHeader";
 import TextInput from "../../components/AppTextInput";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -49,18 +50,9 @@ export default function AuditLogScreen({ navigation }) {
   }, [filteredLogs]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      <BrandHeader title="Activity Log" subtitle="Requests and account activity" onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('AlertScreen'))} />
       <View style={styles.content}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerTextWrap}>
-            <Text style={styles.heading}>Activity Log</Text>
-            <Text style={styles.subheading}>View alert log & user activities</Text>
-          </View>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('AlertScreen')} accessibilityRole="button" accessibilityLabel="Close activity log" activeOpacity={0.75}>
-            <FontAwesome5 name="times" size={24} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.divider} />
 
         <View style={styles.searchBar}>
           <FontAwesome5 name="search" size={18} color={colors.primary} />
@@ -148,7 +140,7 @@ export default function AuditLogScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.screen, paddingBottom: 0 },
+  content: { padding: spacing.screen, paddingTop: 4, paddingBottom: 0 },
   scrollView: { flex: 1 },
   scrollContent: { padding: spacing.screen, paddingTop: 16, paddingBottom: spacing.screen },
   buttonContent: { paddingHorizontal: 20, paddingVertical: 12, justifyContent: 'flex-end' },  

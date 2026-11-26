@@ -1,7 +1,8 @@
-import { typography, spacing, colors } from '../../constants/theme';
+import { typography, spacing, colors, shadow } from '../../constants/theme';
 import { changePhoto } from '../../utils/photos';
 import Avatar from "../../components/Avatar";
-import QRCode from 'react-native-qrcode-svg';
+import QrCardPanel, { QrAction } from "../../components/QrCardPanel";
+import BrandHeader, { BARANGAY_LABEL } from "../../components/BrandHeader";
 import useResidentProfile from "../../hooks/useResidentProfile";
 import ScreenState from "../../components/ScreenState";
 import { api } from '../../services/api';
@@ -228,26 +229,19 @@ export default function ProfileScreen({ route, navigation }) {
 
   if (showQR && qrData?.publicScanUrl) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
-          <Text style={styles.back} onPress={() => setShowQR(false)}>‹ Back</Text>
-          <Text style={styles.heading}>QRAlalay Card</Text>
-        </View>
-        <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
-          <View style={styles.qrBox}>
-            <QRCode value={qrData.publicScanUrl} size={240} getRef={(node) => { qrRef.current = node; }} />
-            <Text style={styles.qrName}>{resident.name}</Text>
-            <InfoRow label="Type" value={resident.type} />
-          </View>
-          <TouchableOpacity style={styles.primaryButton} disabled={qrBusy} onPress={saveQrCard}>
-            <Text style={styles.primaryButtonText}>{qrBusy ? 'Please wait…' : 'Save / Share QR Card'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.revokeButton} disabled={qrBusy} onPress={() => confirmIssue(true)}>
-            <Text style={styles.revokeButtonText}>Replace QR Card</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.revokeButton} disabled={qrBusy} onPress={confirmRevoke}>
-            <Text style={styles.revokeButtonText}>Revoke QR Card</Text>
-          </TouchableOpacity>
+      <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+        <BrandHeader title="QR card" subtitle={resident.name} onBack={() => setShowQR(false)} />
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.qrScroll}>
+          <QrCardPanel
+            value={qrData.publicScanUrl}
+            qrRef={qrRef}
+            name={resident.name}
+            category={resident.type}
+            details={[resident.code, BARANGAY_LABEL]}
+          />
+          <QrAction variant="save" label={qrBusy ? 'Please wait…' : 'Save / share PDF'} disabled={qrBusy} onPress={saveQrCard} />
+          <QrAction variant="replace" label="Replace QR card" disabled={qrBusy} onPress={() => confirmIssue(true)} />
+          <QrAction variant="revoke" label="Revoke QR card" disabled={qrBusy} onPress={confirmRevoke} />
         </ScrollView>
         <AppModal visible={!!modal} title={modal?.title} onClose={closeModal} actions={modal?.actions}>
           <Text style={styles.modalText}>{modal?.message}</Text>
@@ -259,9 +253,9 @@ export default function ProfileScreen({ route, navigation }) {
   const qrLabel = qrBusy ? 'Please wait…' : (qrData || activeCard) ? 'View QR Card' : qrStatus.unavailable ? 'Issue QR Card' : 'Generate QR Card';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.back} onPress={() => navigation.goBack()}>‹ Back</Text>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      <BrandHeader title="Resident profile" onBack={() => navigation.goBack()} />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         <View style={[styles.residentCard, styles.shadow]}>
           <Avatar uri={resident.photoUrl} name={resident.name} style={styles.residentPhoto} onChangePress={changeResidentPhoto} />
@@ -284,10 +278,7 @@ export default function ProfileScreen({ route, navigation }) {
             <Text style={styles.qrButtonText}>{qrLabel}</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.divider} />
-      </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={styles.section}>Personal Information</Text>
         <View style={styles.card}>
           <InfoRow label="Full Name" value={resident.name} />
@@ -443,22 +434,22 @@ const styles = StyleSheet.create({
   back: { fontSize: typography.body, fontFamily: 'Poppins_400Regular', color: colors.primary, marginBottom: 4, marginTop: 0, minHeight: 44, paddingVertical: 4 },
   heading: { fontSize: typography.title, fontFamily: 'Poppins_700Bold', marginBottom: 8 },
 
-  residentCard: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.primary, borderRadius: 12, backgroundColor: colors.primarySoft, padding: spacing.card, marginBottom: 16 },
-  residentPhoto: { width: 85, height: 100, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.border, marginRight: 11 },
-  contextTitle: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold' },
+  residentCard: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 20, backgroundColor: colors.surface, padding: spacing.card, marginBottom: 12, ...shadow.card },
+  residentPhoto: { width: 88, height: 104, borderRadius: 14, backgroundColor: colors.primarySoft, marginRight: 14 },
+  contextTitle: { fontSize: typography.section, fontFamily: 'Poppins_700Bold', color: colors.textPrimary, letterSpacing: -0.3, lineHeight: 28 },
   small: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', marginTop: 2 },
   divider: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 8 },
 
   actionRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  editButton: { flex: 1, backgroundColor: colors.primarySoft, borderColor: colors.primary, borderWidth: 1, borderRadius: 10, paddingVertical: 11, alignItems: 'center', minHeight: 44 },
-  editButtonText: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.caption },
-  qrButton: { flex: 1, backgroundColor: colors.primarySoft, borderColor: colors.primary, borderWidth: 1, borderRadius: 10, paddingVertical: 11, alignItems: 'center', minHeight: 44 },
-  qrButtonText: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.caption },
+  editButton: { flex: 1, backgroundColor: colors.surface, borderColor: colors.primaryBorder, borderWidth: 1, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 52 },
+  editButtonText: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.detail },
+  qrButton: { flex: 1, backgroundColor: colors.primary, borderColor: colors.primary, borderWidth: 1, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 52 },
+  qrButtonText: { color: colors.onPrimary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.detail },
 
-  section: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold', marginTop: 15, marginBottom: 7 },
+  section: { fontSize: typography.body, fontFamily: 'Poppins_700Bold', color: colors.textPrimary, marginTop: 20, marginBottom: 8 },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   linkAction: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.caption, paddingVertical: 8, marginBottom: 4 },
-  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, paddingVertical: 4, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
+  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: spacing.card, paddingVertical: 4, backgroundColor: colors.surface, ...shadow.card },
 
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, alignSelf: 'stretch' },
   infoLabel: { fontSize: typography.caption, fontFamily: 'Poppins_400Regular', color: colors.textSecondary },
@@ -493,6 +484,7 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 9, paddingHorizontal: 10, paddingVertical: 6 },
   busy: { position: 'absolute', top: '45%', alignSelf: 'center' },
 
+  qrScroll: { padding: spacing.screen, paddingTop: 4, paddingBottom: spacing.screen + 16 },
   qrBox: { margin: 20, marginTop: 10, borderWidth: 1, borderColor: colors.primary, borderRadius: 14, padding: 20, paddingTop: 30, paddingBottom: 10, alignItems: 'center', backgroundColor: colors.primarySoft },
   qrName: { fontSize: typography.section, fontFamily: 'Poppins_600SemiBold', color: colors.primary, marginTop: 20 },
   primaryButton: { marginTop: 18, backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 16, alignItems: 'center', marginHorizontal: 20, minHeight: spacing.control, justifyContent: 'center' },
