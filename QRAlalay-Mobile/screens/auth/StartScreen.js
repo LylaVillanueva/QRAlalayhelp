@@ -1,8 +1,11 @@
-import { typography, spacing, colors } from "../../constants/theme";
+import { typography, spacing, colors, font, radius, tracking } from "../../constants/theme";
 import React, { useState, useEffect } from 'react';
 import { View, Image, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import Text from "../../components/AppText";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { useIsFocused } from '@react-navigation/native';
+import { BrandCurve, BrandDots } from '../../components/BrandHeader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginPortal from './LogIn';
 import PermissionScreen, { PERMISSIONS_ACCEPTED_KEY } from './PermissionScreen';
@@ -10,6 +13,8 @@ import { useAccessibilitySettings } from "../../contexts/AccessibilitySettingsCo
 
 export default function StartScreen({ setSession, navigation }) {
   const { t } = useAccessibilitySettings();
+  const insets = useSafeAreaInsets();
+  const focused = useIsFocused();
   const [view, setView] = useState('start'); // 'start' | 'login' | 'permission'
   const [permissionsAccepted, setPermissionsAccepted] = useState(false);
   const [pendingSession, setPendingSession] = useState(null);
@@ -49,43 +54,64 @@ export default function StartScreen({ setSession, navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Image
-          source={require("../../assets/logo.png")}
-          style={styles.icon}
-          resizeMode="contain"
-        />
-        <Text style={styles.title}>QRAlalay</Text>
-        <Text style={styles.description}>
-          {t('tagline')}
-        </Text>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      <ScrollView contentContainerStyle={styles.content} bounces={false}>
+        <View style={[styles.band, { paddingTop: insets.top + 32 }]}>
+          {focused && <StatusBar style="light" />}
+          <Image
+            source={require("../../assets/logo.png")}
+            style={styles.icon}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+            accessibilityLabel="QRAlalay logo"
+          />
+          <Text style={styles.title} accessibilityRole="header">QRAlalay</Text>
+          <Text style={styles.tagline}>{t('tagline')}</Text>
+          <BrandCurve height={36} />
+        </View>
+
+        <View style={styles.body}>
+          <BrandDots style={{ marginBottom: 16 }} />
+          <Text style={styles.lead}>Community care, within reach.</Text>
+          <Text style={styles.description}>
+            For barangay officials, guardians and responders of Barangay 206, Tondo, Manila. Sign in with the email your barangay registered.
+          </Text>
+          <Text style={styles.classification}>Capstone System Prototype · Technological University of the Philippines</Text>
+        </View>
       </ScrollView>
 
-      <TouchableOpacity style={styles.startButton} onPress={handleLogInPress}>
-        <Text style={styles.startButtonText}>{t('logIn')}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.emergencyButton} onPress={() => navigation.navigate('PublicEmergencyHelp')} accessibilityRole="button">
-        <Text style={styles.emergencyButtonText}>Emergency help · Call Barangay / 911</Text>
-      </TouchableOpacity>
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.startButton} onPress={handleLogInPress} accessibilityRole="button" activeOpacity={0.8}>
+          <Text style={styles.startButtonText}>{t('logIn')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.emergencyButton} onPress={() => navigation.navigate('PublicEmergencyHelp')} accessibilityRole="button" activeOpacity={0.8}>
+          <Text style={styles.emergencyButtonText}>Emergency help · Call Barangay / 911</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'space-between', padding: 24, paddingBottom: 40, backgroundColor: colors.background },
-  content: { flexGrow: 1, paddingVertical: 24, justifyContent: 'center', alignItems: 'center' },
-  icon: { width: 250, height: 250, marginBottom: 24, borderRadius: 24 },
-  title: { fontSize: typography.title, fontFamily: 'Poppins_600SemiBold', marginBottom: 8, textAlign: 'center' },
-  description: { fontSize: typography.body, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 16 },
-  
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { flexGrow: 1 },
+  band: { backgroundColor: colors.brand, alignItems: 'flex-start', paddingHorizontal: spacing.screen, paddingBottom: 56 },
+  icon: { width: 96, height: 96, borderRadius: 22, backgroundColor: colors.onPrimary, marginBottom: 20 },
+  title: { fontSize: typography.title + 4, fontFamily: font.bold, color: colors.onPrimary, letterSpacing: tracking.title, lineHeight: 42 },
+  tagline: { fontSize: typography.body, fontFamily: font.medium, color: colors.onPrimary, marginTop: 4 },
+  body: { paddingHorizontal: spacing.screen, paddingTop: 20, paddingBottom: 24 },
+  lead: { fontSize: typography.section, fontFamily: font.semibold, color: colors.textPrimary, letterSpacing: tracking.section, lineHeight: 30, marginBottom: 8 },
+  description: { fontSize: typography.body, fontFamily: font.regular, color: colors.textSecondary, lineHeight: 28, maxWidth: 560 },
+  classification: { fontSize: typography.caption, fontFamily: font.regular, color: colors.textSecondary, marginTop: 20 },
+  actions: { paddingHorizontal: spacing.screen, paddingTop: 12, paddingBottom: 16, gap: 8 },
   startButton: {
     backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     alignItems: 'center',
-   minHeight: spacing.control },
-  startButtonText: { color: colors.onPrimary, fontSize: typography.body, fontFamily: 'Poppins_500Medium', fontWeight: '600' },
-  emergencyButton: { minHeight: spacing.control, justifyContent: 'center', alignItems: 'center', paddingVertical: 12, marginTop: 10 },
-  emergencyButtonText: { color: colors.alertInk, fontSize: typography.detail, fontFamily: 'Poppins_600SemiBold', textAlign: 'center' },
+    justifyContent: 'center',
+    minHeight: 58,
+  },
+  startButtonText: { color: colors.onPrimary, fontSize: typography.body, fontFamily: font.semibold },
+  emergencyButton: { minHeight: 52, justifyContent: 'center', alignItems: 'center', borderRadius: radius.lg, borderWidth: 1, borderColor: colors.alertBorder, backgroundColor: colors.alertSoft },
+  emergencyButtonText: { color: colors.alertInk, fontSize: typography.detail, fontFamily: font.semibold, textAlign: 'center' },
 });

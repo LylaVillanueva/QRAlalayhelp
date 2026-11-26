@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   filterMenu: { borderRadius: 10, borderColor: colors.border, backgroundColor: colors.surface },
   filterText: { fontSize: typography.caption, fontFamily: 'Poppins_500Medium', color: colors.textSecondary, flexShrink: 1 }, 
   
-  userCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 10, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  userCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 10, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   photo: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.textMuted, marginRight: 14 },
   userText: { flex: 1, marginRight: 6 }, name: { fontSize: typography.body, fontFamily: 'Poppins_500Medium' }, 
   role: { fontSize: typography.caption, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, marginTop: 1 }, 

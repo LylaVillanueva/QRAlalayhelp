@@ -1,9 +1,10 @@
-import { alertLayout, colors, typography, spacing } from '../../constants/theme';
+import { alertLayout, colors, typography, spacing, radius, tracking } from '../../constants/theme';
 import Avatar from "../../components/Avatar";
 import { alertStageLabel } from '../../utils/models';
 import React, { useMemo } from 'react';
 import { View, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import Text from "../../components/AppText";
+import BrandHeader from "../../components/BrandHeader";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import TabBar from "../../components/tabs/TabButtons";
@@ -43,37 +44,25 @@ export default function HomeScreen({ navigation }) {
   const pendingAssignments = () => navigation.navigate('AlertScreen', { filter: 'unassigned' });
 
   const cards = [
-    { label: 'Open Requests', count: counts.active, icon: 'exclamation-triangle', onPress: openAlerts },
-    { label: 'Registered Residents', count: counts.residents, icon: 'users', onPress: () => navigation.navigate('ResidentScreen') },
-    { label: 'Pending Assignments', count: counts.unassigned, icon: 'clock', onPress: pendingAssignments },
+    { label: 'Open assistance requests', count: counts.active, icon: 'hands-helping', onPress: openAlerts },
+    { label: 'Registered residents', count: counts.residents, icon: 'users', onPress: () => navigation.navigate('ResidentScreen') },
+    { label: 'Waiting for a responder', count: counts.unassigned, icon: 'clock', onPress: pendingAssignments },
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.profileBar}>
-          <Avatar uri={myPhotoUrl} style={styles.photo} />
-          <View style={{ flex: 1, marginTop: 3 }}>
-            <Text style={styles.subheading}>Welcome, {account.fullName}</Text>
-            <Text style={styles.roleLine}>{'Barangay Official'} • {account.barangayName}</Text>
-          </View>
-        </View>
-        <View style={styles.divider} />
-      </View>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      <BrandHeader name={account.fullName} role={'Barangay Official'} barangay={account.barangayName} photoUrl={myPhotoUrl} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Text style={[styles.sectionTitle, styles.overviewTitle]}>System Overview</Text>
-        <View style={styles.grid}>
-          {cards.map((item) => (
-            <TouchableOpacity key={item.label} style={[styles.gridCard, styles.shadow]} onPress={item.onPress} activeOpacity={0.78}>
-              <Text style={styles.gridLabel}>{item.label}</Text>
-              <View style={{ flexDirection: 'row', paddingHorizontal: 4 }}>
-                <FontAwesome5 name={item.icon} size={28} color={colors.primary} style={{ marginTop: 4 }}/>
-                <View style={styles.gridTextWrap}>
-                  <Text style={styles.gridCount}>{item.count}</Text>
-                </View>
-                <FontAwesome5 name="chevron-right" size={13} color={colors.primary} style={{ marginTop: 12}}/>
-              </View>
+        <Text style={[styles.sectionTitle, styles.overviewTitle]} accessibilityRole="header">Today at a glance</Text>
+        <View style={styles.statPanel}>
+          {cards.map((item, index) => (
+            <TouchableOpacity key={item.label} style={[styles.statRow, index > 0 && styles.statDivider]} onPress={item.onPress} activeOpacity={0.7}
+              accessibilityRole="button" accessibilityLabel={`${item.label}: ${item.count}`}>
+              <View style={styles.statIcon}><FontAwesome5 name={item.icon} size={16} color={colors.primary} /></View>
+              <Text style={styles.statLabel}>{item.label}</Text>
+              <Text style={styles.statCount}>{item.count}</Text>
+              <FontAwesome5 name="chevron-right" size={12} color={colors.textMuted} />
             </TouchableOpacity>
           ))}
         </View>
@@ -81,7 +70,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.divider} />
         <View style={styles.headerRow}>
           <Text style={styles.sectionTitle}>Needs Attention</Text>
-          <TouchableOpacity onPress={openAlerts}><Text style={styles.viewAll}>View All ›</Text></TouchableOpacity>
+          <TouchableOpacity onPress={openAlerts}><Text style={styles.viewAll}>See all ›</Text></TouchableOpacity>
         </View>
 
         {attentionAlerts.length === 0 ? (
@@ -106,7 +95,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.divider} />
         <View style={styles.headerRow}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('AuditLogScreen')}><Text style={styles.viewAll}>View All ›</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('AuditLogScreen')}><Text style={styles.viewAll}>See all ›</Text></TouchableOpacity>
         </View>
 
         {recentActivity.length === 0 ? (
@@ -144,29 +133,35 @@ const styles = StyleSheet.create({
   emptyListText: { fontSize: typography.body, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', marginBottom: 10, textAlign: 'center' },
   container: { flex: 1, backgroundColor: colors.background }, 
   content: { padding: spacing.screen, paddingTop: 8, paddingBottom: 0 }, 
-  scrollView: { flex: 1 }, scrollContent: { padding: spacing.screen, paddingTop: 0 },
+  scrollView: { flex: 1 }, scrollContent: { padding: spacing.screen, paddingTop: 4 },
   profileBar: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginTop: 10 },
   photo: { width: 52, height: 52, borderRadius: 26, borderWidth: 1.8, borderColor: colors.primary, backgroundColor: colors.border, marginRight: 13 },
   heading: { fontSize: typography.title, fontFamily: 'Poppins_700Bold', marginTop: 4, marginBottom: 0 }, 
   subheading: { fontSize: typography.body, fontFamily: 'Poppins_500Medium', color: colors.textSecondary }, 
   roleLine: { fontSize: typography.detail, fontFamily: 'Poppins_500Medium', color: colors.primary, marginBottom: 4 },
-  divider: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 8 }, 
+  divider: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 16 }, 
   
-  sectionTitle: { fontSize: typography.section, fontFamily: 'Poppins_600SemiBold', color: colors.textPrimary, marginTop: 12, marginBottom: 10 },
+  sectionTitle: { fontSize: typography.section, fontFamily: 'Poppins_700Bold', color: colors.textPrimary, letterSpacing: -0.3, marginTop: 20, marginBottom: 10 },
   overviewTitle: { marginTop: 10, marginBottom: 10 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   
+  statPanel: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, marginBottom: 8 },
+  statRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingHorizontal: 16, paddingVertical: 10 },
+  statDivider: { borderTopWidth: 1, borderTopColor: colors.borderSoft },
+  statIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  statLabel: { flex: 1, fontSize: typography.detail, fontFamily: 'Poppins_500Medium', color: colors.textPrimary },
+  statCount: { fontSize: typography.section, fontFamily: 'Poppins_700Bold', color: colors.textPrimary, fontVariant: ['tabular-nums'], minWidth: 32, textAlign: 'right' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }, 
   gridCard: { width: '49%', minHeight: 88, borderWidth: 1, borderColor: colors.border, borderRadius: 12, flexDirection: 'column', alignItems: 'center', padding: 10, marginBottom: 10, backgroundColor: colors.surface }, 
   gridTextWrap: { flex: 1, marginRight: 6 }, 
   gridCount: { fontSize: typography.section, fontFamily: 'Poppins_700Bold', textAlign: 'center' }, 
   gridLabel: { fontSize: typography.caption, lineHeight: 21, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 12 }, 
-  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
+  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' , flexWrap: 'wrap', columnGap: 12, rowGap: 8 }, 
-  viewAll: { color: colors.textSecondary, fontFamily: 'Poppins_500Medium', fontSize: typography.caption }, 
+  viewAll: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.detail, paddingVertical: 12, minHeight: 48 }, 
   
   headCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 10, backgroundColor: colors.surface , ...alertLayout.card }, 
-  escalatedCard: { borderColor: colors.alert, shadowColor: colors.alert, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
+  escalatedCard: { borderColor: colors.alert, shadowColor: colors.alert, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' , flexWrap: 'wrap', gap: 8 , ...alertLayout.headerRow }, 
   statusPill: { borderRadius: 10, paddingHorizontal: 11, paddingVertical: 3, fontSize: typography.caption, fontFamily: 'Poppins_600SemiBold' }, 
   status_escalated: { color: colors.alertInk, backgroundColor: colors.alertSoft }, 
@@ -180,7 +175,7 @@ const styles = StyleSheet.create({
   cardLocation: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', flex: 1 }, 
   cardSubtitle: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', marginTop: 5 }, 
   
-  emptyCard: { alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 22 }, 
+  emptyCard: { alignItems: 'flex-start', gap: 4, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 20, backgroundColor: colors.surface }, 
   emptyTitle: { fontSize: typography.detail, fontFamily: 'Poppins_600SemiBold', marginTop: 7 }, 
   emptyText: { fontSize: typography.body, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', marginTop: 2 }, 
   

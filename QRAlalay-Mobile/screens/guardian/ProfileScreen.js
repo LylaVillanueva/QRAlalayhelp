@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   qrButtonText: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.caption },
 
   section: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold', marginTop: 15, marginBottom: 7 },
-  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, paddingVertical: 4, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, paddingVertical: 4, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
 
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
   infoLabel: { fontSize: typography.caption, fontFamily: 'Poppins_400Regular', color: colors.textSecondary },
@@ -169,5 +169,5 @@ const styles = StyleSheet.create({
   readOnlyNote: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceSunken, borderRadius: 10, padding: 11, marginTop: 15, marginBottom: -10 },
   readOnlyText: { flex: 1, fontSize: typography.caption, lineHeight: Math.ceil(typography.caption * 1.5), fontFamily: 'Poppins_400Regular', color: colors.textSecondary, marginLeft: 12 },
 
-  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
 });

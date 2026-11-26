@@ -6,7 +6,7 @@
 export const translations = {
   en: {
     // Start / auth
-    tagline: 'Scan. Respond. Alalay',
+    tagline: 'Teknolohiya na may malasakit.',
     logIn: 'Log In',
     signIn: 'Sign In',
     email: 'Email',
@@ -69,7 +69,7 @@ export const translations = {
     scan: 'Scan',
   },
   fil: {
-    tagline: 'Mag-scan. Tumugon. Alalay',
+    tagline: 'Teknolohiya na may malasakit.',
     logIn: 'Mag-log In',
     signIn: 'Mag-sign In',
     email: 'Email',

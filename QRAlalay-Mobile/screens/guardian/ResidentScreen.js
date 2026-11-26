@@ -144,8 +144,8 @@ const styles = StyleSheet.create({
   filterText: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_500Medium' },
   filterLabel: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_500Medium' },
 
-  wardCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 10, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  wardCardActive: { borderColor: colors.alert, shadowColor: colors.alert, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
+  wardCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 10, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
+  wardCardActive: { borderColor: colors.alert, shadowColor: colors.alert, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   photo: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.textMuted, marginRight: 14 },
   photoActive: { borderColor: colors.primary, borderWidth: 1.3 },
   textWrap: { flex: 1, marginRight: 6 },

@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   contextTitle: { fontSize: typography.detail, fontFamily: 'Poppins_600SemiBold' },
   contextText: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', marginBottom: 9, marginTop: 3, marginLeft: 10 },
   section: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold', marginTop: 15, marginBottom: 7 },
-  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
+  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
 
   responderCard: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 9, backgroundColor: colors.surface },
   selectedCard: { borderColor: colors.primary, backgroundColor: colors.primarySoft },

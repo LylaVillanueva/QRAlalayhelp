@@ -1,6 +1,7 @@
-import { typography, spacing, colors } from "../../constants/theme";
+import { typography, spacing, colors, font, radius, tracking } from "../../constants/theme";
 import React, { useState, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform, KeyboardAvoidingView, Image } from 'react-native';
+import { BrandDots } from '../../components/BrandHeader';
 import Text from "../../components/AppText";
 import TextInput from "../../components/AppTextInput";
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -154,7 +155,12 @@ export default function LoginPortal({ setSession, onBack }) {
           >
             {t('back')}
           </Text>
-          <Text style={styles.heading}>{t('signIn')}</Text>
+          <View style={styles.brandRow}>
+            <Image source={require('../../assets/logo.png')} style={styles.logo} accessible={false} />
+            <BrandDots />
+          </View>
+          <Text style={styles.heading} accessibilityRole="header">{t('signIn')}</Text>
+          <Text style={styles.intro}>{otpSent ? 'Check your email inbox for your QRAlalay sign-in code.' : 'We will email you a 6-digit code. You do not need a password.'}</Text>
 
           {!otpSent && PHONE_SIGN_IN_ENABLED && (
             <View style={styles.methodToggle}>
@@ -236,7 +242,9 @@ export default function LoginPortal({ setSession, onBack }) {
 
         <View style={styles.bottomBar}>
           <TouchableOpacity
-            style={[styles.button, styles.shadow]}
+            style={[styles.button, loading && styles.buttonBusy]}
+            accessibilityRole="button"
+            activeOpacity={0.8}
             onPress={otpSent ? handleVerifyOtp : handleContinue}
             disabled={loading}
           >
@@ -246,8 +254,8 @@ export default function LoginPortal({ setSession, onBack }) {
                   ? t('verifying')
                   : t('verify')
                 : loading
-                ? 'Preparing...'
-                : 'Continue'}
+                ? 'Sending code…'
+                : 'Email me a sign-in code'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -261,7 +269,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: { padding: spacing.screen, paddingBottom: 40, paddingTop: 4 },
   back: { fontFamily: 'Poppins_400Regular', fontSize: typography.body, color: colors.primary, marginBottom: 4, minHeight: 44, paddingVertical: 4, marginTop: 0 },
-  heading: { fontFamily: 'Poppins_600SemiBold', fontSize: typography.title, marginBottom: 8 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8, marginBottom: 20 },
+  logo: { width: 56, height: 56, borderRadius: 14 },
+  heading: { fontFamily: font.bold, fontSize: typography.title, letterSpacing: tracking.title, lineHeight: 38, marginBottom: 6 },
+  intro: { fontFamily: font.regular, fontSize: typography.body, color: colors.textSecondary, lineHeight: 27, marginBottom: 24 },
   label: { fontFamily: 'Poppins_400Regular', fontSize: typography.body, color: colors.textSecondary, marginBottom: 10 },
 
   methodToggle: {
@@ -280,10 +291,10 @@ const styles = StyleSheet.create({
   methodButtonActive: {
     backgroundColor: colors.surface,
     shadowColor: colors.shadow,
-    shadowOpacity: 0.05,
+    shadowOpacity: 0,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    elevation: 0,
   },
   methodButtonText: { fontFamily: 'Poppins_500Medium', fontSize: typography.detail, color: colors.textSecondary },
   methodButtonTextActive: { color: colors.primary, fontFamily: 'Poppins_600SemiBold' },
@@ -331,10 +342,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSunken,
     borderWidth: 1,
     borderColor: colors.borderStrong,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     fontSize: typography.section,
+    fontFamily: font.semibold,
+    color: colors.textPrimary,
+    fontVariant: ['tabular-nums'],
   },
-  resend: { fontFamily: 'Poppins_500Medium', marginTop: 16, textAlign: 'center', color: colors.primary, fontSize: typography.caption },
+  resend: { fontFamily: font.medium, marginTop: 8, color: colors.primary, fontSize: typography.detail, minHeight: 48, paddingVertical: 12 },
 
   bottomBar: {
     paddingHorizontal: spacing.screen,
@@ -342,21 +356,22 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
   },
   button: {
-    borderRadius: 10,
-    backgroundColor: colors.primarySoft,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
     shadowColor: colors.textSecondary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0,
     shadowRadius: 4,
-    elevation: 1,
+    elevation: 0,
     minHeight: spacing.control,
     justifyContent: 'center',
   },
-  buttonText: { color: colors.primary, fontSize: typography.body, fontFamily: 'Poppins_500Medium' },
+  buttonText: { color: colors.onPrimary, fontSize: typography.body, fontFamily: font.semibold },
+  buttonBusy: { backgroundColor: colors.primaryDark },
 });

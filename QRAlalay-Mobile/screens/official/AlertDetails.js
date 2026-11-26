@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   closed: { color: colors.successInk, backgroundColor: colors.successSoft }, 
   time: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_400Regular' }, 
   section: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold', marginTop: 15, marginBottom: 7 }, 
-  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 , ...alertLayout.card }, 
+  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 , ...alertLayout.card }, 
   iconRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, smallPhoto: { width: 45, height: 45, borderRadius: 23, backgroundColor: colors.border }, 
   cardTitle: { fontSize: typography.detail, fontFamily: 'Poppins_600SemiBold' }, 
   note: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', lineHeight: Math.ceil(typography.caption * 1.5) }, 
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   assignButton: { borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primarySoft, borderRadius: 9, paddingVertical: 9, alignItems: 'center', marginTop: 10 }, 
   assignText: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.caption }, 
   
-  confirmCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, paddingVertical: 6, paddingBottom: 10, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 , ...alertLayout.card }, 
+  confirmCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, paddingVertical: 6, paddingBottom: 10, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 , ...alertLayout.card }, 
   confirmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 }, 
   confirmLabel: { fontSize: typography.caption, fontFamily: 'Poppins_500Medium' }, 
   confirmPill: { minWidth: 90, textAlign: 'center', borderRadius: 9, paddingHorizontal: 9, paddingVertical: 4, fontSize: typography.caption, fontFamily: 'Poppins_600SemiBold' }, 

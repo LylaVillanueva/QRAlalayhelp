@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   section: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold', marginTop: 15, marginBottom: 7 },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   linkAction: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.caption, paddingVertical: 8, marginBottom: 4 },
-  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, paddingVertical: 4, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, paddingVertical: 4, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
 
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, alignSelf: 'stretch' },
   infoLabel: { fontSize: typography.caption, fontFamily: 'Poppins_400Regular', color: colors.textSecondary },
@@ -500,5 +500,5 @@ const styles = StyleSheet.create({
   revokeButton: { borderColor: colors.alertInk, borderWidth: 1, borderRadius: 10, paddingVertical: 13, alignItems: 'center', marginHorizontal: 20, marginTop: 10, minHeight: 44, justifyContent: 'center' },
   revokeButtonText: { color: colors.alertInk, fontFamily: 'Poppins_600SemiBold' },
 
-  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
 });

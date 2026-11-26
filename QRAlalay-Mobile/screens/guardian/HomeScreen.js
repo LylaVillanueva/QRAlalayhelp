@@ -4,6 +4,7 @@ import { alertStageLabel, ALERT_STAGES } from '../../utils/models';
 import React, { useMemo } from 'react';
 import { View, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import Text from "../../components/AppText";
+import BrandHeader from "../../components/BrandHeader";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import TabBar from "../../components/tabs/GuardianTabButtons";
@@ -26,17 +27,8 @@ export default function HomeScreen({ navigation }) {
 
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.profileBar}>
-          <Avatar uri={myPhotoUrl} style={styles.photo} />
-          <View style={{ flex: 1, marginTop: 3 }}>
-            <Text style={styles.subheading}>Welcome, {account.fullName}</Text>
-            <Text style={styles.roleLine}>{'Guardian'} • {account.barangayName}</Text>
-          </View>
-        </View>
-        <View style={styles.divider} />
-      </View>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      <BrandHeader name={account.fullName} role={'Guardian'} barangay={account.barangayName} photoUrl={myPhotoUrl} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <TouchableOpacity style={[styles.button, styles.buttonNotSafe, { flex: 0, marginBottom: 14 }]} onPress={() => navigation.navigate('EmergencyHelp')}
@@ -135,7 +127,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.divider} />
         <View style={styles.headerRow}>
           <Text style={styles.sectionTitle}>My Residents</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('ResidentScreen')}><Text style={styles.viewAll}>View All ›</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('ResidentScreen')}><Text style={styles.viewAll}>See all ›</Text></TouchableOpacity>
         </View>
 
         {myWards.length === 0 ? (
@@ -175,35 +167,35 @@ function statusStyle(status) {
 }
 
 const styles = StyleSheet.create({
-  emptyCard: { alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 22 },
+  emptyCard: { alignItems: 'flex-start', gap: 4, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 20, backgroundColor: colors.surface },
   container: { flex: 1, backgroundColor: colors.background }, 
   content: { padding: spacing.screen, paddingTop: 8, paddingBottom: 0 }, 
-  scrollView: { flex: 1 }, scrollContent: { padding: spacing.screen, paddingTop: 0 },
+  scrollView: { flex: 1 }, scrollContent: { padding: spacing.screen, paddingTop: 4 },
   profileBar: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginTop: 10 },
   photo: { width: 52, height: 52, borderRadius: 26, borderWidth: 1.8, borderColor: colors.primary, backgroundColor: colors.border, marginRight: 13 },
   heading: { fontSize: typography.title, fontFamily: 'Poppins_700Bold', marginTop: 4, marginBottom: 0 }, 
   heading1: { fontSize: typography.section, fontFamily: 'Poppins_600SemiBold', marginLeft: 0, marginTop: 8, marginBottom: 6},  
   subheading: { fontSize: typography.body, fontFamily: 'Poppins_500Medium', color: colors.textSecondary }, 
   roleLine: { fontSize: typography.detail, fontFamily: 'Poppins_500Medium', color: colors.primary, marginBottom: 4 },
-  divider: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 8 }, 
+  divider: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 16 }, 
 
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { fontSize: typography.section, fontFamily: 'Poppins_600SemiBold', color: colors.textPrimary, marginTop: 12, marginBottom: 10 },
+  sectionTitle: { fontSize: typography.section, fontFamily: 'Poppins_700Bold', color: colors.textPrimary, letterSpacing: -0.3, marginTop: 20, marginBottom: 10 },
   overviewTitle: { marginTop: 10, marginBottom: 10 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   alertCount: { minWidth: 26, height: 26, borderRadius: 14, backgroundColor: colors.alertInk, alignItems: 'center', justifyContent: 'center', marginTop: -4 },
   alertCountText: { color: colors.onPrimary, fontSize: typography.caption, fontFamily: 'Poppins_700Bold', marginTop: 2, marginLeft: 1 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' , flexWrap: 'wrap', columnGap: 12, rowGap: 8 }, 
-  viewAll: { color: colors.textSecondary, fontFamily: 'Poppins_500Medium', fontSize: typography.caption }, 
+  viewAll: { color: colors.primary, fontFamily: 'Poppins_600SemiBold', fontSize: typography.detail, paddingVertical: 12, minHeight: 48 }, 
   
-  residentCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 10, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  residentCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 10, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   residentPhoto: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.textMuted, marginRight: 14 },
   residentTextWrap: { flex: 1 },
   residentName: { fontSize: typography.body, fontFamily: 'Poppins_500Medium', marginBottom: 2 },
   residentType: { fontSize: typography.caption, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, marginBottom: 1 },
   residentMeta: { fontSize: typography.caption, fontFamily: 'Poppins_400Regular', color: colors.textSecondary },
 
-  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
+  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   headCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 10, backgroundColor: colors.surface , ...alertLayout.card }, 
   activityRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, marginTop: -10, marginBottom: -10 },
   activityDivider: { borderBottomWidth: 1, borderBottomColor: colors.border, marginVertical: 8 },
@@ -213,12 +205,12 @@ const styles = StyleSheet.create({
   activityTime: { fontSize: typography.caption, color: colors.textSecondary, fontFamily: 'Poppins_400Regular' },
   emptyListText: { fontSize: typography.body, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', marginBottom: 10, textAlign: 'center' },
   
-  empty: { alignItems: 'center', padding: 40 },
+  empty: { paddingVertical: 16 },
   emptyTitle: { fontSize: typography.body, fontFamily: 'Poppins_600SemiBold' },
-  emptyText: { fontSize: typography.body, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', marginTop: 4, textAlign: 'center' },
+  emptyText: { fontSize: typography.body, color: colors.textSecondary, fontFamily: 'Poppins_400Regular', marginTop: 4 },
 
-  alertCard: { flexDirection: 'column', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 16, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1, ...alertLayout.card },
-  alertCardActive: { borderColor: colors.alert, shadowColor: colors.alert, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
+  alertCard: { flexDirection: 'column', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 16, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0, ...alertLayout.card },
+  alertCardActive: { borderColor: colors.alert, shadowColor: colors.alert, shadowOffset: { width: 2, height: 4 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   alertCardTextWrap: { flexWrap: 'wrap', gap: 6, alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, ...alertLayout.headerRow },
   alertCardTitle: { borderRadius: 10, paddingVertical: 4, paddingHorizontal: 16, fontSize: typography.detail, fontFamily: 'Poppins_600SemiBold' },  alertOpen: { color: colors.alertInk, backgroundColor: colors.alertSoft },
   alertPending: { color: colors.warningInk, backgroundColor: colors.warningSoft },

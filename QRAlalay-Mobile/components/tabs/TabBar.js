@@ -30,8 +30,9 @@ export default function TabBar({ tabs, activeMap = {} }) {
         onPress={() => navigation.navigate('ScannerScreen')}
         activeOpacity={0.85}
         accessibilityRole="button"
+        accessibilityLabel="Scan a QRAlalay card"
       >
-        <FontAwesome5 name="qrcode" size={30} color={colors.primary} />
+        <FontAwesome5 name="qrcode" size={26} color={colors.onPrimary} />
       </TouchableOpacity>
 
       {tabs.slice(mid).map((tab) => (
@@ -53,37 +54,34 @@ function TabItem({ tab, active, onPress, t }) {
       accessibilityState={{ selected: active }}
     >
       <View style={[styles.iconWrap, active && styles.iconActive]}>
-        <FontAwesome5 name={tab.icon} size={19} color={active ? colors.primary : colors.onPrimary} />
+        <FontAwesome5 name={tab.icon} size={18} color={active ? colors.primary : colors.textSecondary} />
       </View>
       <Text style={[styles.tabLabel, active && styles.tabLabelActive]} >{label}</Text>
     </TouchableOpacity>
   );
 }
 
+// Digital Bayanihan navigation: warm-white surface with a hairline top
+// border, blue active icon and label on a soft blue indicator, neutral
+// inactive tabs. The screen's SafeAreaView pads below it for gesture bars.
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 6,
+    paddingBottom: 6,
+    paddingHorizontal: 8,
   },
-  tabButton: { flex: 1, alignItems: 'center', paddingVertical: 4, minWidth: 0 },
-  iconWrap: { borderRadius: 20, width: 40, height: 23, justifyContent: 'center', alignItems: 'center' },
-  iconActive: {
-    backgroundColor: colors.primarySoft,
-    shadowColor: colors.primarySoft,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  tabLabel: { fontSize: 11, fontFamily: font.regular, color: colors.onPrimary, marginTop: 2, textAlign: 'center' },
-  tabLabelActive: { color: colors.onPrimary, fontFamily: font.bold },
+  tabButton: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 52, minWidth: 0, paddingVertical: 2 },
+  iconWrap: { borderRadius: 14, width: 52, height: 28, justifyContent: 'center', alignItems: 'center' },
+  iconActive: { backgroundColor: colors.primarySoft },
+  tabLabel: { fontSize: 12, fontFamily: font.medium, color: colors.textSecondary, marginTop: 2, textAlign: 'center' },
+  tabLabelActive: { color: colors.primary, fontFamily: font.semibold },
   scanButton: {
-    width: 60, height: 60, borderRadius: 30, borderWidth: 1.3, borderColor: colors.primary,
-    backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', marginTop: -22,
-    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 5, elevation: 7,
+    width: 58, height: 58, borderRadius: 29, borderWidth: 4, borderColor: colors.background,
+    backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginTop: -24, marginHorizontal: 4,
   },
-  scanLabel: { fontSize: 8, fontFamily: font.semibold, color: colors.primary, marginTop: -1 },
 });

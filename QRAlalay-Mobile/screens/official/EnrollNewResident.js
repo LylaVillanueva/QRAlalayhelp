@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   countryCodeText: { fontSize: typography.body, fontWeight: '600' },
   phoneInput: { flex: 1, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 8, padding: 16, backgroundColor: colors.surfaceSunken, fontSize: typography.body, fontFamily: 'Poppins_400Regular', minHeight: spacing.control },
   bottomBar: { paddingHorizontal: spacing.screen, paddingTop: 12, paddingBottom: 20, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface },
-  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   button: { borderRadius: 10, backgroundColor: colors.primarySoft, paddingVertical: 16, alignItems: 'center', marginBottom: 8, minHeight: spacing.control, justifyContent: 'center' },
   buttonText: { color: colors.primary, fontSize: typography.body, fontFamily: 'Poppins_500Medium' },
   pdfButton: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 10, paddingVertical: 16, alignItems: 'center', marginTop: 12, minHeight: spacing.control, justifyContent: 'center' },

@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   countryCode: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 8, paddingHorizontal: 14, justifyContent: 'center', marginRight: 8, backgroundColor: colors.surfaceSunken },
   countryCodeText: { fontSize: typography.body, fontWeight: '600' },
   phoneInput: { flex: 1, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 8, paddingHorizontal: 12, backgroundColor: colors.surfaceSunken, fontSize: typography.body, fontFamily: 'Poppins_400Regular', minHeight: spacing.control },  
-  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   button: { borderRadius: 10, backgroundColor: colors.primarySoft, paddingVertical: 16, alignItems: 'center', marginTop: 10, marginBottom: 8, minHeight: spacing.control, justifyContent: 'center' },
   buttonText: { color: colors.primary, fontSize: typography.body, fontFamily: 'Poppins_500Medium' },
   cancelButton: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 16, alignItems: 'center', marginTop: 10, minHeight: spacing.control, justifyContent: 'center' },

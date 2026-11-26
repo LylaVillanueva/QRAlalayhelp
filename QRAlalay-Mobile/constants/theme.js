@@ -1,83 +1,103 @@
 // Shared visual language for every role: light surfaces, blue brand accents, red only for urgency.
 
-// Approved QRAlalay palette. Every screen takes its colors from `colors` below;
-// add new colors here rather than as literals in a screen.
+// Digital Bayanihan palette, the same tokens as the public website
+// (QRAlalay-Web/src/styles/tokens.css) and the authentication emails.
+// Every screen takes its colors from `colors` below; add new colors here
+// rather than as literals in a screen.
 export const palette = {
-  PRIMARY: '#176B87',
-  ALERT: '#E94F50',
-  WARNING: '#F4C430',
-  SUCCESS: '#2E9B70',
-  BACKGROUND: '#F5F7FA',
+  BAYANIHAN_BLUE: '#087DB8',
+  DEEP_NAVY: '#103B66',
+  MALASAKIT_RED: '#F45C59',
+  PAG_ASA_YELLOW: '#FFBE28',
+  KALIGTASAN_GREEN: '#79C957',
+  WARM_WHITE: '#FAF6EF',
+  PURE_WHITE: '#FFFFFF',
+  ACTION: '#056BA3',
+  ACTION_PRESSED: '#045580',
+  TEXT_SECONDARY: '#53616A',
+  BORDER: '#DCE5EA',
+  // Kept for existing references.
+  PRIMARY: '#056BA3',
+  ALERT: '#F45C59',
+  WARNING: '#FFBE28',
+  SUCCESS: '#79C957',
+  BACKGROUND: '#FAF6EF',
   SURFACE: '#FFFFFF',
-  TEXT_PRIMARY: '#243442',
-  TEXT_SECONDARY: '#64748B',
-  BORDER: '#E2E8F0',
+  TEXT_PRIMARY: '#103B66',
 };
 
-// Roles: blue = brand and navigation; red = urgent assistance, escalation and
-// destructive actions; yellow = pending and warnings; green = verified, safe
-// and successful. The *Ink variants are darker shades for text and filled
-// buttons, because the base red, green and yellow are below 4.5:1 contrast
-// for normal-size text on white.
+// Roles: blue = brand, navigation and primary actions; red = urgent
+// assistance, escalation and destructive actions only; yellow = pending and
+// warnings; green = verified, safe and successful. The brand red, yellow and
+// green are accents (icons, borders, dots); text uses the *Ink shades, which
+// meet 4.5:1 on white and on their soft backgrounds.
 export const colors = {
-  primary: palette.PRIMARY,        // 6.0:1 on white
-  primaryDark: '#0F4F66',
-  primarySoft: '#E3F1F6',          // primary text on it: 5.2:1
-  primaryBorder: '#B9DCE8',
-  primaryBright: palette.PRIMARY,  // kept for existing references
-  secondary: palette.PRIMARY,      // kept for existing references
-  onPrimary: '#FFFFFF',
+  primary: palette.ACTION,         // 5.6:1 on white
+  primaryDark: palette.ACTION_PRESSED,
+  primarySoft: '#E7F3FA',          // information background
+  primaryBorder: '#B8DAEC',
+  primaryBright: palette.BAYANIHAN_BLUE, // brand surfaces (headers), white text only at large sizes
+  brand: palette.BAYANIHAN_BLUE,
+  navy: palette.DEEP_NAVY,
+  secondary: palette.ACTION,       // kept for existing references
+  onPrimary: palette.PURE_WHITE,
 
-  alert: palette.ALERT,            // icons, borders, accents
-  alertInk: '#B42B2C',             // text and filled destructive buttons: 6.3:1 on white
-  alertSoft: '#FDE8E8',
-  alertBorder: '#F5C2C2',
+  alert: palette.MALASAKIT_RED,    // icons, borders, accents
+  alertInk: '#A83232',             // text and filled destructive buttons: 6.6:1 on white
+  alertSoft: '#FCE4E2',
+  alertBorder: '#F6BDBA',
 
-  warning: palette.WARNING,        // fills with dark text only
-  warningInk: '#7A5A00',           // 5.7:1 on warningSoft
-  warningSoft: '#FDF3CF',
+  warning: palette.PAG_ASA_YELLOW, // fills with dark text only
+  warningInk: '#826000',           // 5.4:1 on warningSoft
+  warningSoft: '#FFF5D9',
 
-  successBase: palette.SUCCESS,    // icons, borders, accents
-  successInk: '#1E7353',           // 5.8:1 on white
-  successSoft: '#DDF3EA',
+  successBase: palette.KALIGTASAN_GREEN, // icons, borders, accents
+  successInk: '#286C35',           // 6.3:1 on white
+  successSoft: '#E8F5E1',
 
-  background: palette.BACKGROUND,
-  surface: palette.SURFACE,
-  surfaceSunken: '#F8FAFC',        // input fill
+  background: palette.WARM_WHITE,  // the page canvas
+  surface: palette.PURE_WHITE,     // cards and sheets sitting on the warm canvas
+  surfaceSunken: '#F6F8F9',        // input fill
 
-  ink: palette.TEXT_PRIMARY,
-  textPrimary: palette.TEXT_PRIMARY,
-  textSecondary: palette.TEXT_SECONDARY, // 4.8:1 on white
-  textMuted: '#94A3B8',            // decorative icons, chevrons, disabled
+  ink: palette.DEEP_NAVY,
+  text: palette.DEEP_NAVY,
+  textPrimary: palette.DEEP_NAVY,
+  textSecondary: palette.TEXT_SECONDARY, // 6.1:1 on white
+  textMuted: '#7A8790',            // decorative icons, chevrons, disabled
   textFaint: palette.TEXT_SECONDARY,
   textPlaceholder: palette.TEXT_SECONDARY,
 
   border: palette.BORDER,
-  borderStrong: '#CBD5E1',         // input outlines
-  borderSoft: '#EEF2F6',
-  overlay: 'rgba(15,23,42,0.45)',
-  shadow: '#0F172A',
+  borderStrong: '#B9C7CF',         // input outlines
+  borderSoft: '#EAEFF2',
+  overlay: 'rgba(16,59,102,0.45)',
+  shadow: palette.DEEP_NAVY,
 
   // Status groups (text + background), used by status pills and badges.
-  danger: { ink: '#B42B2C', bg: '#FDE8E8' },
-  pending: { ink: '#7A5A00', bg: '#FDF3CF' },
-  success: { ink: '#1E7353', bg: '#DDF3EA', soft: '#DDF3EA' },
-  info: { ink: palette.PRIMARY, bg: '#E3F1F6' },
+  danger: { ink: '#A83232', bg: '#FCE4E2' },
+  pending: { ink: '#826000', bg: '#FFF5D9' },
+  success: { ink: '#286C35', bg: '#E8F5E1', soft: '#E8F5E1' },
+  info: { ink: palette.ACTION, bg: '#E7F3FA' },
 
-  dangerSurface: '#FDE8E8',        // light red fill for destructive buttons
+  dangerSurface: '#FCE4E2',        // light red fill for destructive buttons
 };
 
-// Keep elevation subtle so content and controls lead the page.
+// The four-colour motif from the logo, in logo order.
+export const brandDots = [palette.MALASAKIT_RED, palette.PAG_ASA_YELLOW, palette.KALIGTASAN_GREEN, palette.BAYANIHAN_BLUE];
+
+// Depth comes from 1px hairline borders, not drop shadows.
 export const shadow = {
-  card: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  soft: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 },
+  card: { shadowOpacity: 0, elevation: 0 },
+  soft: { shadowOpacity: 0, elevation: 0 },
 };
 
 // Logical pixels: readable at the default size, with optional larger text in Settings.
-export const typography = { title: 32, section: 24, body: 18, detail: 16, caption: 14 };
+export const typography = { title: 30, section: 22, body: 18, detail: 16, caption: 14 };
+// Tight tracking for large headings, as on the website.
+export const tracking = { title: -0.6, section: -0.3 };
 export const spacing = { screen: 24, section: 24, field: 24, card: 16, control: 56 };
 
-export const radius = { sm: 8, md: 10, lg: 12, pill: 100 };
+export const radius = { sm: 10, md: 12, lg: 16, xl: 24, pill: 100 };
 
 // Form controls follow the enrollment reference.
 export const field = {
@@ -105,7 +125,7 @@ export function statusTone(status) {
 
 // Neutral structure keeps attention on the colored confirmation actions.
 export const alertLayout = {
-  card: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 12, padding: 16, shadowOpacity: 0, elevation: 0 },
+  card: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, padding: 16, shadowOpacity: 0, elevation: 0 },
   location: { backgroundColor: colors.surfaceSunken, borderColor: colors.border, borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 12 },
   headerRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 },
   details: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 8, minHeight: 48, paddingVertical: 10, paddingHorizontal: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

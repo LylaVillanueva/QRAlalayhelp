@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   progressBar: { flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.border, marginRight: 6 },
   progressBarActive: { backgroundColor: colors.primary },
 
-  residentCard: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, marginBottom: -16, padding: spacing.card, marginBottom: 16, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  residentCard: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, marginBottom: -16, padding: spacing.card, marginBottom: 16, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   residentPhoto: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.textMuted, marginRight: 14 },
   residentTextWrap: { flex: 1 },
   residentName: { fontSize: typography.body, fontFamily: 'Poppins_500Medium', marginBottom: 2 },
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   chipLabelActive: { color: colors.primary, fontFamily: 'Poppins_700Bold' },
 
   bottomBar: { paddingHorizontal: spacing.screen, paddingTop: 12, paddingBottom: 20, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface },
-  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  shadow: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   submitButton: { borderRadius: 10, backgroundColor: colors.primarySoft, paddingVertical: 16, alignItems: 'center', marginBottom: 8, minHeight: spacing.control, justifyContent: 'center' },
   buttonDisabled: { backgroundColor: colors.primarySoft },
   submitButtonText: { color: colors.primary, fontSize: typography.body, fontFamily: 'Poppins_500Medium' },
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   resultHeading: { fontSize: typography.section, fontFamily: 'Poppins_700Bold', textAlign: 'center', marginBottom: 4 },
   resultSubheading: { fontSize: typography.detail, fontFamily: 'Poppins_400Regular', color: colors.textSecondary, textAlign: 'center', marginBottom: 24, marginTop: 6 },
     
-  button: { borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surface, borderRadius: 10, paddingVertical: 16, alignItems: 'center', width: '100%', shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1, minHeight: spacing.control, justifyContent: 'center' },
+  button: { borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surface, borderRadius: 10, paddingVertical: 16, alignItems: 'center', width: '100%', shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0, minHeight: spacing.control, justifyContent: 'center' },
   blueButton: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   backButtonText: { color: colors.textPrimary, fontFamily: 'Poppins_500Medium', fontSize: typography.body },
   blueText: { color: colors.primary },

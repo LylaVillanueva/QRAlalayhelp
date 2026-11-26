@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   subheading: { fontSize: typography.body, fontFamily: 'Poppins_500Medium', color: colors.textSecondary, marginTop: -8 }, 
   divider: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 10 },
 
-  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 16, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.card, marginBottom: 16, backgroundColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0, shadowRadius: 4, elevation: 0 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   status: { borderRadius: 10, paddingVertical: 4, paddingHorizontal: 13, fontSize: typography.caption, fontFamily: 'Poppins_600SemiBold' },
   closed: { color: colors.successInk, backgroundColor: colors.successSoft },
