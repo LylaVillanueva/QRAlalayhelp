@@ -23,14 +23,25 @@ Deno.serve(async (request) => {
     }
     const wardIds = body.wardIds === undefined ? [] : body.wardIds;
     const relationship = body.relationship === undefined ? null : requireString(body.relationship, "relationship").trim();
+    const relationshipApproved = body.relationshipApproved === undefined ? false : body.relationshipApproved;
+    if (typeof relationshipApproved !== "boolean") throw new HttpError(400, "INVALID_INPUT", "Invalid relationship approval.");
     if (!Array.isArray(wardIds) || wardIds.length > 25 || wardIds.some((id) => typeof id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))) {
       throw new HttpError(400, "INVALID_INPUT", "Invalid resident relationships.");
     }
     if (wardIds.length && (role !== "guardian" || !relationship || relationship.length > 100)) throw new HttpError(400, "INVALID_INPUT", "Guardian relationship details are required.");
+    if (relationshipApproved && (!email || role !== "guardian" || !wardIds.length || !relationship)) {
+      throw new HttpError(400, "INVALID_INPUT", "An approved guardian invitation requires an email, relationship, and resident.");
+    }
 
     // The database function authorizes the signed-in active official, scopes
     // the invitation to that official's barangay, and records its audit entry.
-    const profileId = email
+    const profileId = relationshipApproved
+      ? await authenticatedRpc(request, "create_guardian_invitation_with_approved_links", {
+        p_email: email, p_full_name: fullName, p_phone: phone,
+        p_resident_ids: [...new Set(wardIds)], p_relationship: relationship,
+        p_position: position, p_home_address: homeAddress,
+      })
+      : email
       ? await authenticatedRpc(request, "create_profile_invitation_with_work_info", {
         p_email: email, p_full_name: fullName, p_phone: phone, p_role: role,
         p_ward_ids: [...new Set(wardIds)], p_relationship: relationship,

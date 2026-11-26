@@ -93,13 +93,10 @@ export const shadow = {
   soft: { shadowColor: palette.DEEP_NAVY, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1 },
 };
 
-// Left accent stripe for assistance cards, always paired with a text status
-// label: red = new or escalated (needs action), yellow = in progress,
-// green = closed. Closed cards are slightly muted.
+// Assistance cards rely on their status label and pill colour; there is no
+// side stripe. Closed cards are slightly muted so open ones stand out.
 export function statusAccent(status) {
-  if (status === 'closed') return { borderLeftWidth: 5, borderLeftColor: palette.KALIGTASAN_GREEN, opacity: 0.88 };
-  if (status === 'pending') return { borderLeftWidth: 5, borderLeftColor: palette.PAG_ASA_YELLOW };
-  return { borderLeftWidth: 5, borderLeftColor: palette.MALASAKIT_RED };
+  return status === 'closed' ? { opacity: 0.88 } : null;
 }
 
 // Logical pixels: readable at the default size, with optional larger text in Settings.
