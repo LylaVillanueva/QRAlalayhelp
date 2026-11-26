@@ -75,7 +75,8 @@ select ok(public.change_profile_role('93100000-0000-4000-8000-000000000002','res
   'Responder role ended after completed assignments'),
   'official can change role after the responder assignment is completed');
 select set_config('request.jwt.claim.sub','91100000-0000-4000-8000-000000000002',true);
-select ok(not qralalay.can_view_resident('94100000-0000-4000-8000-000000000001'),
+select is((select count(*)::int from public.list_accessible_residents_with_photos()
+  where resident_id='94100000-0000-4000-8000-000000000001'),0,
   'old responder assignments do not preserve resident access after role change');
 select throws_ok($test$select * from public.get_assistance_case('96100000-0000-4000-8000-000000000001')$test$,
   '42501','Not authorized for this case','old responder assignment does not preserve case access after role change');
