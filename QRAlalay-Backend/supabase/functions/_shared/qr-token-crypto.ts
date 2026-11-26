@@ -11,7 +11,9 @@ async function loadKey() {
     throw new Error(`invalid ${KEY_ENV} encoding`);
   }
   if (raw.length !== 32) throw new Error(`${KEY_ENV} must decode to 32 bytes`);
-  return await crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+  const keyBytes = new Uint8Array(raw.length);
+  keyBytes.set(raw);
+  return await crypto.subtle.importKey("raw", keyBytes.buffer, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
 
 function encodeBase64Url(bytes: Uint8Array) {

@@ -27,7 +27,7 @@ export async function handleIssueQrCard(request: Request) {
   }
 }
 
-function corsHeaders(request: Request) {
+function corsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get("origin");
   const allowed = (Deno.env.get("PUBLIC_WEB_ORIGINS") ?? "").split(",").map((item) => item.trim());
   return origin && allowed.includes(origin) ? { "access-control-allow-origin": origin, vary: "Origin" } : {};
