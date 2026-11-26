@@ -26,6 +26,11 @@ values ('a3200000-0000-4000-8000-000000000003','guardian-approval-pending@exampl
   ('a3200000-0000-4000-8000-000000000006','guardian-approval-foreign-pending@example.test');
 insert into qralalay.guardian_links(barangay_id,resident_id,guardian_id,relationship,status)
 values ('a2200000-0000-4000-8000-000000000001','a4200000-0000-4000-8000-000000000002','a3200000-0000-4000-8000-000000000003','Parent','pending');
+select set_config('qralalay.test_pending_link_id',(
+  select id::text from qralalay.guardian_links
+  where resident_id='a4200000-0000-4000-8000-000000000002'
+    and guardian_id='a3200000-0000-4000-8000-000000000003' and status='pending'
+),true);
 
 select ok(has_function_privilege('authenticated','public.approve_guardian_relationship(uuid,uuid,text,text)','EXECUTE'),
   'authenticated callers can use the official-authorized relationship approval RPC');
@@ -69,7 +74,7 @@ select is((select count(*)::integer from qralalay.guardian_links where resident_
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a1200000-0000-4000-8000-000000000001',true);
 select is(public.approve_guardian_relationship('a4200000-0000-4000-8000-000000000002','a3200000-0000-4000-8000-000000000003','Child','pending_review'),
-  (select id from qralalay.guardian_links where resident_id='a4200000-0000-4000-8000-000000000002' and guardian_id='a3200000-0000-4000-8000-000000000003'),
+  current_setting('qralalay.test_pending_link_id')::uuid,
   'an authorized official can confirm a historical pending link in place');
 reset role;
 select is((select count(*)::integer from qralalay.guardian_links where resident_id='a4200000-0000-4000-8000-000000000002' and guardian_id='a3200000-0000-4000-8000-000000000003' and status in ('pending','verified')),
